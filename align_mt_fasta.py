@@ -12,7 +12,7 @@ from tqdm import tqdm
 from Bio import SeqIO
 import sys
 
-def args()
+def args():
     parser = argparse.ArgumentParser(description = 'Create fasta file containing mt+ and mt- sequences',
                                      usage = 'align_mt_fasta.py [options]')
 
@@ -32,7 +32,7 @@ def args()
 class aln(object):
     '''
     Quick class to parse lastz alignment output.
-    Expects --format=general output from command-line lastz
+    Expects --format=general formatted output from command-line lastz
     '''
     def __init__(self, score, name1, strand1, size1, zstart1, 
         end1, name2, strand2, size2, zstart2, end2, identity, 
@@ -63,7 +63,6 @@ def parse_aln(filename):
     with open(filename) as f:
         aln_file = [aln(line) for line in f.readlines() if not line.startswith('#')]
     return aln_file
-
 
 def parse_mt_plus(filename, output):
     '''
@@ -150,7 +149,7 @@ def add_homologous_regions(minus_seqs, aln_file, minus_ref_dict,
                 assert 2 not in current_region # would indicate double edit
             except AssertionError:
                 print('Error - one or more sites in the mt- sequences')
-                print('were edited twice. This indicates overlapping regions.')
+                print('was edited twice. This indicates overlapping regions.')
                 print('The offending region was', start, '-', end, 'w/ orientation', orientation)
                 sys.exit(1)
             else:
@@ -163,8 +162,7 @@ def main(plus, minus, alignment, output):
     mt_plus_length = get_mt_plus_length(plus)
     minus_seqs, minus_refs, minus_rev_refs = create_minus_dicts(minus, mt_plus_length)
 
-    # write output file to disk
-    # containing mt plus sequences
+    # write initial output file to disk
     parse_mt_plus(plus, output) 
 
     minus_seqs = add_homologous_regions(minus_seqs, 
