@@ -37,7 +37,7 @@ d %<>%
     filter(score == max_score) %>%
     select(-max_score) %>%
     mutate(match_count = n()) %>%
-    mutate(first = min(zstart2) %>% # identical matches
+    mutate(first = min(zstart2)) %>% # identical matches
     filter(zstart2 == first) %>%
     select(-first)
     
