@@ -161,7 +161,7 @@ def add_homologous_regions(minus_seqs, aln_file, minus_refs,
             else:
                 left_edit_chunk = edit_check[strain][0:start]
                 added_chunk = ''.join(['1' for i in range(end - start)])
-                right_edit_chunk = edit_check[strain][end:len(edit_check[strain]]
+                right_edit_chunk = edit_check[strain][end:len(edit_check[strain])]
                 edit_check[strain][start:end] = left_edit_chunk + added_chunk + right_edit_chunk
 
     return minus_seqs
