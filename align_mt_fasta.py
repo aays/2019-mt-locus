@@ -139,9 +139,15 @@ def add_homologous_regions(minus_seqs, aln_file, minus_refs,
         assert orientation in ['+', '-']
         for strain in minus_seqs.keys():
             if orientation == '+':
-                minus_seqs[strain][start:end] = minus_refs[strain][start:end]
+                left_chunk = minus_seqs[strain][0:start]
+                added_chunk = minus_refs[strain][start:end]
+                right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
+                minus_seqs[strain] = left_chunk + added_chunk + right_chunk
             elif orientation == '-':
-                minus_seqs[strain][start:end] = minus_rev_refs[strain][start:end]
+                left_chunk = minus_seqs[strain][0:start]
+                added_chunk = minus_rev_refs[strain][start:end]
+                right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
+                minus_seqs[strain][start:end] = left_chunk + added_chunk + right_chunk
             # check for double edit
             try:
                 current_region = [int(site) for site in list(edit_check[strain][start:end])]
@@ -153,7 +159,10 @@ def add_homologous_regions(minus_seqs, aln_file, minus_refs,
                 print('The offending region was', start, '-', end, 'w/ orientation', orientation)
                 sys.exit(1)
             else:
-                edit_check[strain][start:end] = ''.join(['1' for i in range(end - start)])
+                left_edit_chunk = edit_check[strain][0:start]
+                added_chunk = ''.join(['1' for i in range(end - start)])
+                right_edit_chunk = edit_check[strain][end:len(edit_check[strain]]
+                edit_check[strain][start:end] = left_edit_chunk + added_chunk + right_edit_chunk
 
     return minus_seqs
 
