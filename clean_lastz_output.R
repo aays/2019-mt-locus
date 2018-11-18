@@ -36,19 +36,21 @@ d %<>%
     mutate(max_score = max(score)) %>%
     filter(score == max_score) %>%
     select(-max_score) %>%
-    mutate(match_count = n()) %>%
     mutate(first = min(zstart2)) %>% # identical matches
     filter(zstart2 == first) %>%
     select(-first)
     
 # assert no double matches left
 test <- d %>%
-    select(zstart1) %>%
+    group_by(zstart1) %>%
+    mutate(match_count = n()) %>%
+    ungroup() %>%
+    select(match_count) %>%
     unlist() %>% unique()
 
-stopifnot(length(d) == 1)
+stopifnot(length(test) == 1)
 
-write_csv(d, file = opt$out, sep = '\t', row.names = FALSE)
+write_tsv(d, path = opt$out)
 
 
 
