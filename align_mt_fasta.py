@@ -147,7 +147,7 @@ def add_homologous_regions(minus_seqs, aln_file, minus_refs,
                 left_chunk = minus_seqs[strain][0:start]
                 added_chunk = minus_rev_refs[strain][start:end]
                 right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
-                minus_seqs[strain][start:end] = left_chunk + added_chunk + right_chunk
+                minus_seqs[strain] = left_chunk + added_chunk + right_chunk
             # check for double edit
             try:
                 current_region = [int(site) for site in list(edit_check[strain][start:end])]
@@ -162,7 +162,7 @@ def add_homologous_regions(minus_seqs, aln_file, minus_refs,
                 left_edit_chunk = edit_check[strain][0:start]
                 added_chunk = ''.join(['1' for i in range(end - start)])
                 right_edit_chunk = edit_check[strain][end:len(edit_check[strain])]
-                edit_check[strain][start:end] = left_edit_chunk + added_chunk + right_edit_chunk
+                edit_check[strain] = left_edit_chunk + added_chunk + right_edit_chunk
 
     return minus_seqs
 
