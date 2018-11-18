@@ -135,17 +135,18 @@ def add_homologous_regions(minus_seqs, aln_file, minus_refs,
 
     # iterate through alignment
     for region in tqdm(aln_file):
-        start, end, orientation = region.zstart2, region.end2, region.strand2
+        start, end = region.zstart1, region.end1
+        start_minus, end_minus, orientation = region.zstart2, region.end2, region.strand2
         assert orientation in ['+', '-']
         for strain in minus_seqs.keys():
             if orientation == '+':
                 left_chunk = minus_seqs[strain][0:start]
-                added_chunk = minus_refs[strain][start:end]
+                added_chunk = minus_refs[strain][start_minus:end_minus] # homolog from minus ref
                 right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
                 minus_seqs[strain] = left_chunk + added_chunk + right_chunk
             elif orientation == '-':
                 left_chunk = minus_seqs[strain][0:start]
-                added_chunk = minus_rev_refs[strain][start:end]
+                added_chunk = minus_rev_refs[strain][start_minus:end_minus] # homolog from minus rev ref
                 right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
                 minus_seqs[strain] = left_chunk + added_chunk + right_chunk
             # check for double edit
