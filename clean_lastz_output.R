@@ -57,7 +57,10 @@ d %<>%
     arrange(zstart1) %>%
     mutate(next_start = lead(zstart1)) %>%
     mutate(in_interval = ifelse(next_start < end1, 1, 0)) %>%
-    mutate(end1 = ifelse(in_interval == 1, next_start, end1)) %>%
+    mutate(end1 = case_when(
+        in_interval == 1 ~ next_start,
+        in_interval == 0 ~ end1,
+        is.na(in_interval) ~ end1)) %>%
     select(-next_start, -in_interval)
 
 # assert no double matches left
