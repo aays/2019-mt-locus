@@ -36,7 +36,7 @@ option_list <- list(
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 
-d <- read_tsv(opt$file)
+d <- read_tsv(opt$file, col_types = cols())
 
 # to prevent formatting errors
 colnames(d)[1] <- 'score'
@@ -54,7 +54,7 @@ d %<>%
 # prevent overlapping alignments
 d %<>%
     mutate(next_start = lead(zstart1)) %>%
-    mutate(end1 = ifelse(next_start < end1, next_start, end1) %>%
+    mutate(end1 = ifelse(next_start < end1, next_start, end1)) %>%
     select(-next_start)
 
 # assert no double matches left
@@ -69,5 +69,7 @@ stopifnot(length(test) == 1)
 
 write_tsv(d, path = opt$out)
 
-
+message('\nFile successfully cleaned.')
+message(paste('Output written to', opt$out))
+message('Good job!')
 
