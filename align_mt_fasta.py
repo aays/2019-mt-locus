@@ -87,7 +87,7 @@ def get_mt_plus_length(filename):
         plus_length += len(str(record.seq))
         counter += 1
         assert plus_length > 0
-    assert int(plus_length / counter) = int(ind_length) # make sure all seqs same length
+    assert int(plus_length / counter) == int(ind_length) # make sure all seqs same length
     return ind_length
 
 def create_minus_dicts(filename, plus_length):
