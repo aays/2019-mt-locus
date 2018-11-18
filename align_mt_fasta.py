@@ -41,17 +41,17 @@ class aln(object):
         self.name1 = name1
         self.strand1 = strand1
         self.size1 = size1
-        self.zstart1 = zstart1 # origin-zero
-        self.end1 = end1
+        self.zstart1 = int(zstart1) # origin-zero
+        self.end1 = int(end1)
         self.name2 = name2
         self.strand2 = strand2
         self.size2 = size2
-        self.zstart2 = zstart2 # origin-zero, orientation dependent
-        self.end2 = end2
+        self.zstart2 = int(zstart2) # origin-zero, orientation dependent
+        self.end2 = int(end2)
         self.identity = [int(num) for num in str(identity).split('/')]
         self.idPct = float(idPct[:len(idPct) - 1])
         self.coverage = [int(num) for num in str(coverage).split('/')]
-        self.covPct = float(covPct[:len(covPct) - 1])
+        self.covPct = covPct[:len(covPct) - 1]
 
 def parse_aln(filename):
     '''
@@ -61,7 +61,7 @@ def parse_aln(filename):
     expects --format=general
     '''
     with open(filename) as f:
-        aln_file = [aln(line) for line in f.readlines() if not line.startswith('#')]
+        aln_file = [aln(*line.split('\t')) for line in f.readlines() if not line.startswith('score')]
     return aln_file
 
 def parse_mt_plus(filename, output):
@@ -118,8 +118,8 @@ def create_minus_dicts(filename, plus_length):
     return minus_seqs, minus_refs, minus_rev_refs
 
 
-def add_homologous_regions(minus_seqs, aln_file, minus_ref_dict,
-    minus_ref_rev_dict):
+def add_homologous_regions(minus_seqs, aln_file, minus_refs,
+    minus_rev_refs):
     ''' (dict, aln, dict, dict) -> dict
     takes in dictionaries from create_minus_dicts and
     iterates over alignment, pasting on homologous
@@ -137,7 +137,7 @@ def add_homologous_regions(minus_seqs, aln_file, minus_ref_dict,
     for region in tqdm(aln_file):
         start, end, orientation = region.zstart2, region.end2, region.strand2
         assert orientation in ['+', '-']
-        for strain in minus_dict.keys():
+        for strain in minus_seqs.keys():
             if orientation == '+':
                 minus_seqs[strain][start:end] = minus_refs[strain][start:end]
             elif orientation == '-':
