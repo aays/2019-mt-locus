@@ -49,13 +49,16 @@ d %<>%
     select(-max_score) %>%
     mutate(first = min(zstart2)) %>% # identical matches
     filter(zstart2 == first) %>%
-    select(-first)
+    select(-first) %>%
+    ungroup()
     
 # prevent overlapping alignments
 d %<>%
+    arrange(zstart1) %>%
     mutate(next_start = lead(zstart1)) %>%
-    mutate(end1 = ifelse(next_start < end1, next_start, end1)) %>%
-    select(-next_start)
+    mutate(in_interval = ifelse(next_start < end1, 1, 0)) %>%
+    mutate(end1 = ifelse(in_interval == 1, next_start, end1)) %>%
+    select(-next_start, in_interval)
 
 # assert no double matches left
 test <- d %>%
