@@ -6,9 +6,18 @@
 # any instances where a target region
 # has multiple instances in a query region
 #
-# -> these are resolved by selecting the
+# these are resolved by selecting the
 # alignment that has the highest x-drop score
 #
+# this script will also correct for overlapping
+# alignments by modifying the end1 coordinate -
+# although this doesn't impact the aligned regions,
+# it may mean the other stats (identity, coverage, etc)
+# are not completely accurate in the outfile.
+# I'm sticking with this since we aren't using any of
+# those metrics to filter for this analysis in the first
+# place.
+# 
 # usage Rscript clean_lastz_output.R [infile] [outfile]
 
 library(readr)
@@ -29,8 +38,10 @@ opt <- parse_args(opt_parser)
 
 d <- read_tsv(opt$file)
 
-colnames(d)[1] <- 'score' # prevent formatting errors
+# to prevent formatting errors
+colnames(d)[1] <- 'score'
 
+# remove duplicates
 d %<>% 
     group_by(zstart1) %>%
     mutate(max_score = max(score)) %>%
@@ -40,6 +51,12 @@ d %<>%
     filter(zstart2 == first) %>%
     select(-first)
     
+# prevent overlapping alignments
+d %<>%
+    mutate(next_start = lead(zstart1)) %>%
+    mutate(end1 = ifelse(next_start < end1, next_start, end1) %>%
+    select(-next_start)
+
 # assert no double matches left
 test <- d %>%
     group_by(zstart1) %>%
