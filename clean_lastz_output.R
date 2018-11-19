@@ -57,7 +57,7 @@ d %<>%
     arrange(zstart1) %>%
     mutate(next_start1 = lead(zstart1), 
            next_start2 = lead(zstart2)) %>%
-    mutate(in_interval = ifelse(next_start < end1, 1, 0)) %>%
+    mutate(in_interval = ifelse(next_start1 < end1, 1, 0)) %>%
     mutate(end1 = case_when(
         in_interval == 1 ~ next_start1,
         in_interval == 0 ~ end1,
@@ -66,7 +66,7 @@ d %<>%
         in_interval == 1 ~ next_start2,
         in_interval == 0 ~ end2,
         is.na(in_interval) ~ end2)) %>%
-    select(-next_start, -in_interval)
+    select(-contains('next_start'), -in_interval)
 
 # assert no double matches left
 test <- d %>%
