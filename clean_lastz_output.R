@@ -55,18 +55,15 @@ d %<>%
 # prevent overlapping alignments
 d %<>%
     arrange(zstart1) %>%
-    mutate(next_start1 = lead(zstart1), 
-           next_start2 = lead(zstart2)) %>%
+    mutate(next_start1 = lead(zstart1)) %>%
     mutate(in_interval = ifelse(next_start1 < end1, 1, 0)) %>%
     mutate(end1 = case_when(
         in_interval == 1 ~ next_start1,
         in_interval == 0 ~ end1,
-        is.na(in_interval) ~ end1),
-           end2 = case_when(
-        in_interval == 1 ~ next_start2,
-        in_interval == 0 ~ end2,
-        is.na(in_interval) ~ end2)) %>%
-    select(-contains('next_start'), -in_interval)
+        is.na(in_interval) ~ end1)) %>%
+    mutate(length_chunk = end1 - zstart1) %>%
+    mutate(end2 = zstart2 + length_chunk) %>% # correct minus alignment
+    select(-next_start1, -in_interval, -length_chunk)
 
 # assert no double matches left
 test <- d %>%
