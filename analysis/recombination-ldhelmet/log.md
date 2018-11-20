@@ -56,3 +56,6 @@ time ./bin/ldhelmet post_to_text \
 data/recombination-ldhelmet/intermediate-files/output.post
 
 ```
+the above code has been saved to `ldhelmet_main.sh`
+
+next up: LDhelmet on the mt+ and mt- individuals independently - `ldhelmet_alleles.sh`
