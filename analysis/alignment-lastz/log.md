@@ -1,8 +1,8 @@
-log
+log for alignment analysis
 
-# 5/11/2018
+## 5/11/2018
 
-## making separate fasta files
+### making separate fasta files
 
 given mt_loci.fasta:
 
@@ -38,7 +38,7 @@ http://www.bx.psu.edu/miller_lab/dist/README.lastz-1.02.00/README.lastz-1.02.00a
 tomorrow - have a look at the alignment in geneious and eyeball how it lines up
 
 
-# 7/11/2018
+## 7/11/2018
 
 so the lastz flat file output doesn't fully align w/ geneious and I can't quite tell why
 
@@ -94,9 +94,9 @@ colnames(d)[1] <- 'score'
 ret <- function(position) {
     return(filter(d, zstart1 == position))
 }
+```
 
-
-# 10/11/2018
+## 10/11/2018
 
 attempting alignment with 10k score cutoff:
 
@@ -143,9 +143,9 @@ d %>% filter(zstart1 %in% d_not) %>% select(score) %>% summary()
  Max.   :14081
 ```
 
-# 11/11/2018
+## 11/11/2018
 
-## making fastas
+### making fastas
 
 from the LD paper - plus strains:
 
@@ -209,7 +209,7 @@ time ./bin/vcf2fasta.py -v data/references/all_quebec.HC.vcf.gz \
 --min_GQ 30 > data/aligned-fastas/minus_strains_ref.fasta
 ```
 
-# 17/11/2018
+## 17/11/2018
 
 both the relevant scripts have their first drafts ready:
 
@@ -234,7 +234,7 @@ time python3.5 analysis/alignment-lastz/align_mt_fasta.py \
     --output data/aligned-fastas/mt_aligned.fasta
 ```
 
-# 18/11/2018
+## 18/11/2018
 
 uh oh - we have some overlapping sites.
 
@@ -257,7 +257,7 @@ d = [s for s in SeqIO.parse('mt_aligned.fasta', 'fasta')]
 
 look into this!
 
-# 19/11/2018
+## 19/11/2018
 
 found the issue - the R cleaning script was just making the mt+
 coordinates continuous, but not preventing overlap in the mt minus coordinates.
@@ -280,7 +280,7 @@ time python3.5 analysis/alignment-lastz/align_mt_fasta.pymt_fasta.py \
     --output data/aligned-fastas/mt_aligned.fasta
 ```
 
-# 20/11/2018
+## 20/11/2018
 
 although the script is working, it seems upon manual inspection that 
 the alignments are all 'shifted over' by one:
@@ -451,15 +451,3 @@ CC2938|mtMinus:1-345555
 ```
 
 onto using LDhelmet to calculate recombination rates!
-
-
-
-
-
-
-
-
-
-
-
-
