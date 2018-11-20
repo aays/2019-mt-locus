@@ -38,7 +38,7 @@ for allele in plus minus; do
     --perc 0.025 \
     --perc 0.50 \
     --perc 0.975 \
-    --output_file data/recombination-ldhelmet/recombination-estimates/${allele}_only_recombination.txt
+    --output_file data/recombination-ldhelmet/recombination-estimates/${allele}_only_recombination.txt \
     data/recombination-ldhelmet/intermediate-files/${allele}.post;
 
 done
