@@ -59,3 +59,27 @@ data/recombination-ldhelmet/intermediate-files/output.post
 the above code has been saved to `ldhelmet_main.sh`
 
 next up: LDhelmet on the mt+ and mt- individuals independently - `ldhelmet_alleles.sh`
+
+# 21/11/2018
+
+finally, we'll run LDhelmet on chromosome 6 independently:
+
+```bash
+time ./bin/vcf2fasta.py -v data/references/all_quebec.HC.vcf.gz \
+-r data/references/mtMinus_ref.chromosome_6_and_mtMinus.fasta \
+-i chromosome_6:1-9023763 \
+-s CC2936 CC2937 CC3060 CC3064 CC3065 CC3068 CC3071 CC3076 CC3086 \
+CC2935 CC2938 CC3059 CC3061 CC3062 CC3063 CC3073 CC3075 CC3079 CC3084 \
+--min_GQ 30 > data/aligned-fastas/chromosome_6_all.fasta
+```
+
+
+
+
+
+
+
+
+
+
+
