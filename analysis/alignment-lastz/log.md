@@ -213,8 +213,8 @@ time ./bin/vcf2fasta.py -v data/references/all_quebec.HC.vcf.gz \
 
 both the relevant scripts have their first drafts ready:
 
-- analysis/alignment-lastz/clean_lastz_output.R - removes duplicates etc from the lastz output file
-- analysis/alignment-lastz/align_mt_fasta.pymt_fasta.py - creates aligned fasta
+- `analysis/alignment-lastz/clean_lastz_output.R` - removes duplicates etc from the lastz output file
+- `analysis/alignment-lastz/align_mt_fasta.py` - creates aligned fasta
 
 first pass run:
 
