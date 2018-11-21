@@ -1,7 +1,7 @@
 time ./bin/ldhelmet find_confs \
 --num_threads 10 \
 --window_size 50 \
---chr6_file data/recombination-ldhelmet/intermediate-files/chr6.conf \
+--output_file data/recombination-ldhelmet/intermediate-files/chr6.conf \
 data/aligned-fastas/chromosome_6_all.fasta
 
 time ./bin/ldhelmet table_gen \
@@ -9,13 +9,13 @@ time ./bin/ldhelmet table_gen \
 --conf_file data/recombination-ldhelmet/intermediate-files/chr6.conf \
 --theta 0.01 \
 --rhos 0.0 0.1 10.0 1.0 100.0 \
---chr6_file data/recombination-ldhelmet/intermediate-files/chr6.lk
+--output_file data/recombination-ldhelmet/intermediate-files/chr6.lk
 
 time ./bin/ldhelmet pade \
 --num_threads 10 \
 --conf_file data/recombination-ldhelmet/intermediate-files/chr6.conf \
 --theta 0.01 \
---chr6_file data/recombination-ldhelmet/intermediate-files/chr6.pade
+--output_file data/recombination-ldhelmet/intermediate-files/chr6.pade
 
 time ./bin/ldhelmet rjmcmc \
 --num_threads 10 \
@@ -26,12 +26,12 @@ time ./bin/ldhelmet rjmcmc \
 --num_iter 1000000 \
 --burn_in 100000 \
 --block_penalty 50 \
---chr6_file data/recombination-ldhelmet/intermediate-files/chr6.post
+--output_file data/recombination-ldhelmet/intermediate-files/chr6.post
 
 time ./bin/ldhelmet post_to_text \
 --mean \
 --perc 0.025 \
 --perc 0.50 \
 --perc 0.975 \
---chr6_file data/recombination-ldhelmet/recombination-estimates/chr6_all_recombination.txt
+--output_file data/recombination-ldhelmet/recombination-estimates/chr6_all_recombination.txt
 data/recombination-ldhelmet/intermediate-files/chr6.post
