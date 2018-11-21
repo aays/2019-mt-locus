@@ -60,7 +60,7 @@ the above code has been saved to `ldhelmet_main.sh`
 
 next up: LDhelmet on the mt+ and mt- individuals independently - `ldhelmet_alleles.sh`
 
-# 21/11/2018
+## 21/11/2018
 
 finally, we'll run LDhelmet on chromosome 6 independently:
 
@@ -72,7 +72,10 @@ time ./bin/vcf2fasta.py -v data/references/all_quebec.HC.vcf.gz \
 CC2935 CC2938 CC3059 CC3061 CC3062 CC3063 CC3073 CC3075 CC3079 CC3084 \
 --min_GQ 30 > data/aligned-fastas/chromosome_6_all.fasta
 ```
+followed by `ldhelmet_chr6.sh`
 
+(I know I should ideally have a general LDhelmet script that takes in filenames at the command
+line, instead of hardcoding paths in newer scripts... maybe something to retroactively make afterwards)
 
 
 
