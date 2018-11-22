@@ -33,5 +33,5 @@ time ./bin/ldhelmet post_to_text \
 --perc 0.025 \
 --perc 0.50 \
 --perc 0.975 \
---output_file data/recombination-ldhelmet/recombination-estimates/chr6_all_recombination.txt
+--output_file data/recombination-ldhelmet/recombination-estimates/chr6_all_recombination.txt \
 data/recombination-ldhelmet/intermediate-files/chr6.post
