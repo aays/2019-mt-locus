@@ -77,7 +77,13 @@ followed by `ldhelmet_chr6.sh`
 (I know I should ideally have a general LDhelmet script that takes in filenames at the command
 line, instead of hardcoding paths in newer scripts... maybe something to retroactively make afterwards)
 
+## 22/11/2018
 
+added `mean_rho.R` - R script to parse all LDhelmet outputs in a directory
+and return mean per bp rho estimates.
+
+seems the aligned mt has the highest, while the mt alleles on their own
+are comparable to chromosome 6's overall per bp recombination rate!
 
 
 
