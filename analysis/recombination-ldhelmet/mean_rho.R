@@ -4,7 +4,7 @@
 library(readr)
 library(dplyr, warn.conflicts = FALSE)
 library(purrr)
-library(magrittr)
+library(magrittr, warn.conflicts = FALSE)
 library(optparse)
 
 args <- function() {
@@ -28,14 +28,19 @@ weighted_mean <- function(df) {
     return(output)
 }
 
-# read in files from dir
-
+# parse args
 opt <- args()
+
+# load files
 ldhelmet_cols <- c('left_snp', 'right_snp', 'mean', 'p025', 'p50', 'p975')
 ldhelmet_files <- map(list.files(opt$dir, full.names = TRUE),
                       read_delim, delim = ' ', skip = 3,
                       col_types = cols(), col_names = ldhelmet_cols)
+names(ldhelmet_files) <- list.files(opt$dir)
+
+# compute per bp recombination rate
 output <- map_dfr(ldhelmet_files, weighted_mean, .id = 'name')
 
+# write output
 write_delim(output, path = opt$outfile, delim = ' ')
 
