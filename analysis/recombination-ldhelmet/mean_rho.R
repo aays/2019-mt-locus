@@ -1,5 +1,7 @@
 # mean_rho.R - returns mean rho across input ldhelmet files
 #
+# usage:
+# Rscript mean_rho.R --dir [directory w/ infiles] --output [outfile]
 
 library(readr)
 library(dplyr, warn.conflicts = FALSE)
@@ -44,3 +46,5 @@ output <- map_dfr(ldhelmet_files, weighted_mean, .id = 'name')
 # write output
 write_delim(output, path = opt$outfile, delim = ' ')
 
+message('Done.')
+message(paste('Output written to', opt$outfile))
