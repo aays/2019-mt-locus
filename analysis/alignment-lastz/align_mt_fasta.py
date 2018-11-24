@@ -61,18 +61,10 @@ def parse_aln(filename):
     expects --format=general
     '''
     with open(filename) as f:
-        aln_file = [aln(*line.split('\t')) for line in f.readlines() if not line.startswith('score')]
+        aln_file = [aln(*line.split('\t')) 
+                    for line in f.readlines() 
+                    if not line.startswith('score')]
     return aln_file
-
-def parse_mt_plus(filename, output):
-    '''
-    (str, str) -> None
-    Writes mt plus sequences to final output file
-    '''
-    with open(output, 'w') as f:
-        seqs = SeqIO.parse(filename, 'fasta')
-        SeqIO.write(seqs, f, 'fasta') # write records to file
-    return None
 
 def get_mt_plus_length(filename):
     '''
@@ -90,12 +82,41 @@ def get_mt_plus_length(filename):
     assert int(plus_length / counter) == int(ind_length) # make sure all seqs same length
     return ind_length
 
+def create_plus_dicts(filename, plus_length):
+    '''
+    (str, int) -> dict, dict
+
+    input fasta should contain mt+ strains only
+
+    creates two dictionaries:
+
+    plus_seqs - sequences containing all Ns that
+    will be written over with gametologs from
+    the lastz alignment
+
+    plus_refs - full mt+ sequences from fasta files, to
+    be used to pull homologous regions from
+    '''    
+    plus_strains = [s.id for s in SeqIO.parse(filename, 'fasta')]
+    plus_seqs = dict.fromkeys(plus_strains, '')
+    plus_refs = dict.fromkeys(plus_strains, '')
+    # N dictionary
+    for strain in plus_seqs.keys():
+        plus_seqs[strain] = ''.join(['N' for i range(plus_length)])
+    # ref dictionary
+    for record in SeqIO.parse(filename, 'fasta'):
+        plus_refs[record.id] = str(record.seq)
+    return plus_seqs, plus_refs
+
 def create_minus_dicts(filename, plus_length):
     '''
     (str, int) -> dict, dict, dict
+
+    input fasta should contain mt- strains only
+
     creates three dictionaries:
 
-    minus_seqs - 'minus' sequences containing all Ns
+    minus_seqs - 'minus' sequences containing all Ns -
     these sequences will be 'written over' with mt+
     homologous regions from the lastz alignment
 
@@ -117,10 +138,55 @@ def create_minus_dicts(filename, plus_length):
         minus_rev_refs[record.id] = str(record.reverse_complement().seq)
     return minus_seqs, minus_refs, minus_rev_refs
 
+def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs):
+    '''
+    (dict, aln, dict) -> dict
+    takes in dictionaries from create_plus_dicts and
+    iterates over alignment, pasting on homologous
+    regions into N-only dictionary
 
-def add_homologous_regions(minus_seqs, aln_file, minus_refs,
-    minus_rev_refs):
-    ''' (dict, aln, dict, dict) -> dict
+    will also check that regions are not edited twice
+
+    this function doesn't require a reverse complement
+    dict since lastz always reports target coordinates
+    in the 5' -> 3' orientation
+    '''
+    # make dummy dict to keep track of changes
+    plus_length = len(plus_seqs[sorted(list(plus_seqs.keys()))[0]])
+    edit_check = dict.fromkeys(list(plus_seqs.keys()), '')
+    for strain in edit_check.keys():
+        edit_check[strain] = ''.join(['0' for i in range(plus_length)])
+
+    # iterate through alignment
+    for region in tqdm(aln_file):
+        start, end = region.zstart1, region.end1
+        for strain in plus_seqs.keys():
+            left_chunk = plus_seqs[strain][0:start]
+            added_chunk = plus_refs[strain][start:end]
+            right_chunk = plus_seqs[strain][end:len(plus_seqs[strain])]
+            plus_seqs[strain] = left_chunk + added_chunk + right_chunk
+
+            # check for double edit
+            try:
+                current_region = [int(site) for site in list(edit_chunk[strain][start:end])]
+                current_region = [site + 1 for site in current_region]
+                assert 2 not in current_region # would indicate double edit
+            except AssertionError:
+                print('Error - one or more sites in the mt+ sequences')
+                print('was edited twice. This indicates overlapping regions.')
+                print('The offending region was', start, '-', end)
+                sys.exit(1)
+            else:
+                left_edit_chunk = edit_check[strain][0:start]
+                added_chunk = ''.join(['1' for i in range(end - start)])
+                right_edit_chunk = edit_check[strain][end:len(edit_check[strain])]
+                edit_check[strain] = left_edit_chunk + added_chunk + right_edit_chunk
+    return plus_seqs
+
+
+def add_homologous_regions_minus(minus_seqs, aln_file, minus_refs, minus_rev_refs):
+    ''' 
+    (dict, aln, dict, dict) -> dict
     takes in dictionaries from create_minus_dicts and
     iterates over alignment, pasting on homologous
     regions into N-only dictionary
@@ -167,24 +233,31 @@ def add_homologous_regions(minus_seqs, aln_file, minus_refs,
 
     return minus_seqs
 
-def main(plus, minus, alignment, output):
+def main():
+    plus, minus, alignment, output = args()
+
+    # parse aln file and get region length
     aligned_regions = parse_aln(alignment)
     mt_plus_length = get_mt_plus_length(plus)
+
+    # create dicts
+    plus_seqs, plus_refs = create_plus_dicts(plus, mt_plus_length)
     minus_seqs, minus_refs, minus_rev_refs = create_minus_dicts(minus, mt_plus_length)
 
-    # write initial output file to disk
-    parse_mt_plus(plus, output) 
-
-    minus_seqs = add_homologous_regions(minus_seqs, 
+    plus_seqs = add_homologous_regions_plus(plus_seqs,
+        aligned_regions, plus_refs)
+    minus_seqs = add_homologous_regions_minus(minus_seqs, 
         aligned_regions, minus_refs, minus_rev_refs)
 
-    with open(output, 'a') as f:
+    with open(output, 'w') as f:
+        for strain in plus_seqs.keys():
+            f.write('>' + strain + '\n')
+            f.write(plus_seqs[strain] + '\n')
         for strain in minus_seqs.keys():
             f.write('>' + strain + '\n')
             f.write(minus_seqs[strain] + '\n')
 
 if __name__ == '__main__':
-    arguments = args()
-    main(*arguments)
+    main()
 
         

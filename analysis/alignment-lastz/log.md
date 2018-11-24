@@ -451,3 +451,13 @@ CC2938|mtMinus:1-345555
 ```
 
 onto using LDhelmet to calculate recombination rates!
+
+## 24/11/2018
+
+I just realized a significant bug - the fact that the aligned fasta file contains all of the
+mt+ sequence but large chunks of missing mt- sequence means that the LDhelmet output there is 
+not a 'true' representation of RR in gametologs - LDhelmet is still calculating 
+mt+ only 'recombination' in those non-shared regions. the script should instead create a
+fasta that has _only_ gametolog regions.
+
+
