@@ -102,7 +102,7 @@ def create_plus_dicts(filename, plus_length):
     plus_refs = dict.fromkeys(plus_strains, '')
     # N dictionary
     for strain in plus_seqs.keys():
-        plus_seqs[strain] = ''.join(['N' for i range(plus_length)])
+        plus_seqs[strain] = ''.join(['N' for i in range(plus_length)])
     # ref dictionary
     for record in SeqIO.parse(filename, 'fasta'):
         plus_refs[record.id] = str(record.seq)
@@ -168,7 +168,7 @@ def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs):
 
             # check for double edit
             try:
-                current_region = [int(site) for site in list(edit_chunk[strain][start:end])]
+                current_region = [int(site) for site in list(edit_check[strain][start:end])]
                 current_region = [site + 1 for site in current_region]
                 assert 2 not in current_region # would indicate double edit
             except AssertionError:
@@ -243,12 +243,15 @@ def main():
     # create dicts
     plus_seqs, plus_refs = create_plus_dicts(plus, mt_plus_length)
     minus_seqs, minus_refs, minus_rev_refs = create_minus_dicts(minus, mt_plus_length)
-
+    
+    print('Extracting mt+ gametologs...')
     plus_seqs = add_homologous_regions_plus(plus_seqs,
         aligned_regions, plus_refs)
+    print('Extracting mt- gametologs...')
     minus_seqs = add_homologous_regions_minus(minus_seqs, 
         aligned_regions, minus_refs, minus_rev_refs)
 
+    print('Writing to file...')
     with open(output, 'w') as f:
         for strain in plus_seqs.keys():
             f.write('>' + strain + '\n')
@@ -256,6 +259,8 @@ def main():
         for strain in minus_seqs.keys():
             f.write('>' + strain + '\n')
             f.write(minus_seqs[strain] + '\n')
+    print('Done.')
+    print('Hooray!')
 
 if __name__ == '__main__':
     main()

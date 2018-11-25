@@ -399,7 +399,7 @@ time ./bin/vcf2fasta.py -v data/references/all_quebec.HC.vcf.gz \
 third time's the charm?
 
 ```bash
-time python3.5 analysis/alignment-lastz/align_mt_fasta.pymt_fasta.py \
+time python3.5 analysis/alignment-lastz/align_mt_fasta.py \
     --plus data/aligned-fastas/plus_strains_ref.fasta \
     --minus data/aligned-fastas/minus_strains_ref.fasta \
     --alignment data/alignment-lastz/lastz-align-filtered.bed \
@@ -459,5 +459,15 @@ mt+ sequence but large chunks of missing mt- sequence means that the LDhelmet ou
 not a 'true' representation of RR in gametologs - LDhelmet is still calculating 
 mt+ only 'recombination' in those non-shared regions. the script should instead create a
 fasta that has _only_ gametolog regions.
+
+now that the script has been edited, let's try this again:
+
+```bash
+time python3.5 analysis/alignment-lastz/align_mt_fasta.py \
+    --plus data/aligned-fastas/plus_strains_ref.fasta \
+    --minus data/aligned-fastas/minus_strains_ref.fasta \
+    --alignment data/alignment-lastz/lastz-align-filtered.bed \
+    --output data/aligned-fastas/mt_aligned_only.fasta
+```
 
 
