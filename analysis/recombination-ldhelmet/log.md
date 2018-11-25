@@ -85,6 +85,25 @@ and return mean per bp rho estimates.
 seems the aligned mt has the highest, while the mt alleles on their own
 are comparable to chromosome 6's overall per bp recombination rate!
 
+## 24/11/2018
+
+redoing ldhelmet on the aligned fasta after correcting it -
+
+(see log in analysis/alignment-lastz/)
+
+first, I've removed all the previous ldhelmet intermediate files,
+and renamed the final file to `mt_locus_old.txt`
+
+and so:
+
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet_main.sh
+```
+
+
+
+
+
 
 
 
