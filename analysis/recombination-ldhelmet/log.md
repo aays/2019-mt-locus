@@ -100,7 +100,14 @@ and so:
 time bash analysis/recombination-ldhelmet/ldhelmet_main.sh
 ```
 
+# 25/11/2018
 
+and here we are, back again:
+
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet_main.sh
+time bash analysis/recombination-ldhelmet/ldhelmet_alleles.sh
+```
 
 
 

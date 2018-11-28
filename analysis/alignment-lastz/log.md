@@ -521,3 +521,36 @@ CC2938|mtMinus:1-345555
  NNNNANNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNCCGTGACCCCC
 
 ```
+
+## 25/11/2018
+
+so apparently I've been using the wrong VCFs - hence the large amounts of
+missing sequence in the alignment above.
+
+and so we vcf2fasta again:
+
+```bash
+time ./bin/vcf2fasta.py -v data/references/all_quebec.mtPlus.gGVCFs.vcf.gz \
+-r data/references/mtPlus_ref.chromosome_6.fasta \
+-i chromosome_6:298299-826737 \
+-s CC2936 CC2937 CC3060 CC3064 CC3065 CC3068 CC3071 CC3076 CC3086 \
+--min_GQ 30 > data/aligned-fastas/plus_strains_ref.fasta
+
+time ./bin/vcf2fasta.py -v data/references/all_quebec.mtMinus.gGVCFs.vcf.gz \
+-r data/references/mtMinus_ref.chromosome_6_and_mtMinus.fasta \
+-i mtMinus:1-345555 \
+-s CC2935 CC2938 CC3059 CC3061 CC3062 CC3063 CC3073 CC3075 CC3079 CC3084 \
+--min_GQ 30 > data/aligned-fastas/minus_strains_ref.fasta
+```
+
+and now for the alignment (again...)
+
+```bash
+time python3.5 analysis/alignment-lastz/align_mt_fasta.py \
+    --plus data/aligned-fastas/plus_strains_ref.fasta \
+    --minus data/aligned-fastas/minus_strains_ref.fasta \
+    --alignment data/alignment-lastz/lastz-align-filtered.bed \
+    --output data/aligned-fastas/mt_aligned_only.fasta
+```
+
+
