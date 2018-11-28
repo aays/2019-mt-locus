@@ -553,4 +553,39 @@ time python3.5 analysis/alignment-lastz/align_mt_fasta.py \
     --output data/aligned-fastas/mt_aligned_only.fasta
 ```
 
+## 28/11/2018
+
+things to do after meeting with Rob:
+- what's the difference in lastz output between gapped and nongapped alignments?
+    - ie how much data, if any, are we losing with the gap free method?
+- make fastas for the plus and minus alleles that specifically do _not_ contain gametologs
+- write a script that correctly calculates the weighted means, and divides by the correct amt of sequence
+    - the current R script divides by the entire length of the mt locus, which is incorrect
+
+### lastz - gapped versus ungapped
+
+we can start by running the exact same lastz command as before, minus the gapfree arg
+
+```bash
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-10k-gapped.bed \
+--hspthresh=10000 \
+--format=general
+```
+
+off the bat, it seems we get less hits, but that the hits are much larger in the gapped version:
+
+```bash
+$ wc -l *
+   261 lastz-align-10k-gapped.bed
+  1004 lastz-align-10k-ungapped.bed
+```
+
+
+
+
+
+
+
+
 
