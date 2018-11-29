@@ -101,7 +101,7 @@ def get_non_shared_bases_plus(lastz_file, seq_length):
                   for line in lastz_file]
     bases_covered = []
 
-    for start, end in tqdm(intervals):
+    for start, end in intervals:
         values = [num for num in range(start, end)]
         bases_covered.extend(values)
 
@@ -112,225 +112,137 @@ def get_non_shared_bases_plus(lastz_file, seq_length):
 
 def get_non_shared_bases_minus(lastz_file, seq_length):
     '''
-    (aln_file, str) -> list, list
+    (aln_file, str) -> list
 
     returns a list of positions that _do not_ have matches
     in the lastz alignment (ie that are non-shared regions)
 
+    all rev comp positions are converted to the positive orientation
+
     specifically for minus allele (bc both orientations need
     to be considered here)
     '''
-    intervals_fwd = [[int(line['zstart2']), int(line['end2'])] 
-                    for line in lastz_file if line['strand2'] == '+']
-    intervals_rev = [[int(line['zstart2']), int(line['end2'])]
-                    for line in lastz_file if line['strand2'] == '-']
-    bases_covered_fwd = []
-    bases_covered_rev = []
+    strands = ['+', '-']
+    intervals = dict.fromkeys(strands, [])
+    bases_covered = dict.fromkeys(strands, [])
+    all_bases = dict.fromkeys(strands, set([i for i in range(seq_length)]))
+    non_shared_bases = dict.fromkeys(strands)
 
-    for start, end in tqdm(intervals_fwd):
-        values = [num for num in range(start, end)]
-        bases_covered_fwd.extend(values)
-    for start, end in tqdm(intervals_rev):
-        values = [num for num in range(start, end)]
-        bases_covered_rev.extend(values)
+    for key in intervals.keys():
+        intervals[key] = [[int(line['zstart2']), int(line['end2'])] 
+                         for line in lastz_file if line['strand2'] == key]
+        for start, end in intervals[key]:
+            values = [num for num in range(start, end)]
+            bases_covered[key].extend(values)
+        non_shared_bases[key] = sorted(list(
+            all_bases[key].difference(set(bases_covered[key]))
+            )
+        )
 
-    all_bases_fwd = set([i for i in range(seq_length)]) # all possible values
-    all_bases_rev = set([i for i in range(seq_length)])
-    non_shared_bases_fwd = sorted(list(
-        all_bases_fwd.difference(set(all_bases_fwd))
-        ))
-    non_shared_bases_rev = sorted(list(
-        all_bases_rev.difference(set(all_bases_rev))
-        ))
+    # convert rev orientation to fwd + combine
+    non_shared_rev_fixed = set([seq_length - base - 1
+                            for base in non_shared_bases['-']])
+    non_shared_final = set(non_shared_bases['+']) \
+                        .union(non_shared_rev_fixed)
 
-    return non_shared_bases_fwd, non_shared_bases_rev
+    return non_shared_bases # combined coordinates, all in fwd orientation
 
-
-def create_plus_dicts(filename, plus_length):
+def create_mt_dicts(filename, seq_length):
     '''
     (str, int) -> dict, dict
-
-    input fasta should contain mt+ strains only
-
+    
     creates two dictionaries:
 
-    plus_seqs - sequences containing all Ns that
+    strain_seqs - sequences containing all Ns that
     will be written over with gametologs from
     the lastz alignment
 
-    plus_refs - full mt+ sequences from fasta files, to
+    strain_refs - full mt+ sequences from fasta files, to
     be used to pull homologous regions from
-
-    unchanged from align_mt_fasta.py
     '''    
-    plus_strains = [s.id for s in SeqIO.parse(filename, 'fasta')]
-    plus_seqs = dict.fromkeys(plus_strains, '')
-    plus_refs = dict.fromkeys(plus_strains, '')
+    strainlist = [s.id for s in SeqIO.parse(filename, 'fasta')]
+    strain_seqs = dict.fromkeys(strainlist, '')
+    strain_refs = dict.fromkeys(strainlist, '')
     # N dictionary
-    for strain in plus_seqs.keys():
-        plus_seqs[strain] = ''.join(['N' for i in range(plus_length)])
+    for strain in strain_seqs.keys():
+        strain_seqs[strain] = ''.join(['N' for i in range(seq_length)])
     # ref dictionary
     for record in SeqIO.parse(filename, 'fasta'):
-        plus_refs[record.id] = str(record.seq)
-    return plus_seqs, plus_refs
+        strain_refs[record.id] = str(record.seq)
+    return strain_seqs, strain_refs
 
-def create_minus_dicts(filename, plus_length):
+def add_nonhomologous_regions(strain_seqs, non_shared_bases, strain_refs):
     '''
-    (str, int) -> dict, dict, dict
-
-    input fasta should contain mt- strains only
-
-    creates three dictionaries:
-
-    minus_seqs - 'minus' sequences containing all Ns -
-    these sequences will be 'written over' with mt+
-    homologous regions from the lastz alignment
-
-    minus_refs - full mt- sequences from fasta files,
-    to be used to pull homologous regions from 
-
-    minus_rev_refs - same as minus_refs, but reversed
-
-    unchanged from align_mt_fasta.py
-    '''
-    minus_strains = [s.id for s in SeqIO.parse(filename, 'fasta')]
-    minus_seqs = dict.fromkeys(minus_strains, '')
-    minus_refs = dict.fromkeys(minus_strains, '')
-    minus_rev_refs = dict.fromkeys(minus_strains, '')
-    # N dictionary
-    for strain in minus_seqs.keys():
-        minus_seqs[strain] = ''.join(['N' for i in range(plus_length)])
-    # ref dictionaries
-    for record in SeqIO.parse(filename, 'fasta'):
-        minus_refs[record.id] = str(record.seq)
-        minus_rev_refs[record.id] = str(record.reverse_complement().seq)
-    return minus_seqs, minus_refs, minus_rev_refs
-
-def add_homologous_regions_plus(plus_seqs, non_shared_bases, plus_refs):
-    '''
-    (dict, aln, dict) -> dict
-    takes in dictionaries from create_plus_dicts and
-    iterates over alignment, pasting on homologous
-    regions into N-only dictionary
+    (dict, list, dict) -> dict
+    takes in dictionaries from create_mt_dicts and non-shared
+    bases from strain-specific fxn -
+    iterates over alignment, pasting on nonhomologous
+    regions into N-only dictionary with strains as keys
 
     will also check that regions are not edited twice
 
     this function doesn't require a reverse complement
-    dict since lastz always reports target coordinates
-    in the 5' -> 3' orientation
+    dict since lastz always reports target (mt+) coordinates
+    in the 5' -> 3' orientation and the mt- coordinates
+    will have been converted to the positive orientation
     '''
+
     # make dummy dict to keep track of changes
-    plus_length = len(plus_seqs[sorted(list(plus_seqs.keys()))[0]])
-    edit_check = dict.fromkeys(list(plus_seqs.keys()), '')
-    for strain in edit_check.keys():
-        edit_check[strain] = ''.join(['0' for i in range(plus_length)])
+    # works differently from the one in align_mt_fasta
+    allele_length = len(strain_seqs[sorted(list(strain_seqs.keys()))[0]])
+    edit_check = dict.fromkeys(list(strain_seqs.keys()), '')
+    for strain in edit_check.keys(): # nested dict w/ positions as keys
+        edit_check[strain] = dict.fromkeys([i for i in range(plus_length)], 0)
 
-    # iterate through alignment
-    for region in tqdm(aln_file):
-        start, end = region.zstart1, region.end1
-        for strain in plus_seqs.keys():
-            left_chunk = plus_seqs[strain][0:start]
-            added_chunk = plus_refs[strain][start:end]
-            right_chunk = plus_seqs[strain][end:len(plus_seqs[strain])]
-            plus_seqs[strain] = left_chunk + added_chunk + right_chunk
+    # iterate through non-shared bases list
+    for site in tqdm(non_shared_bases):
+        for strain in plus_seqs.keys()
+            left_chunk = strain_seqs[strain][0:site]
+            added_site = strain_refs[strain][site]
+            right_chunk = strain_seqs[strain][site + 1:len(strain_seqs[strain])]
 
-            # check for double edit
+        # check for double edit
             try:
-                current_region = [int(site) for site in list(edit_check[strain][start:end])]
-                current_region = [site + 1 for site in current_region]
-                assert 2 not in current_region # would indicate double edit
+                edit_check[strain][site] += 1
+                assert edit_check[strain][site] < 2
             except AssertionError:
-                print('Error - one or more sites in the mt+ sequences')
-                print('was edited twice. This indicates overlapping regions.')
-                print('The offending region was', start, '-', end)
+                print('Error - a site was edited twice')
+                print('The offending site was', site)
                 sys.exit(1)
-            else:
-                left_edit_chunk = edit_check[strain][0:start]
-                added_chunk = ''.join(['1' for i in range(end - start)])
-                right_edit_chunk = edit_check[strain][end:len(edit_check[strain])]
-                edit_check[strain] = left_edit_chunk + added_chunk + right_edit_chunk
-    return plus_seqs
 
-
-def add_homologous_regions_minus(minus_seqs, non_shared_bases, minus_refs, minus_rev_refs):
-    ''' 
-    (dict, aln, dict, dict) -> dict
-    takes in dictionaries from create_minus_dicts and
-    iterates over alignment, pasting on homologous
-    regions into N-only dictionary
-
-    will also check that regions are not edited twice
-    '''
-    # make dummy dict to keep track of changes
-    plus_length = len(minus_seqs[sorted(list(minus_seqs.keys()))[0]])
-    edit_check = dict.fromkeys(list(minus_seqs.keys()), '')
-    for strain in edit_check.keys():
-        edit_check[strain] = ''.join(['0' for i in range(plus_length)])
-
-    # iterate through alignment
-    for region in tqdm(aln_file):
-        start, end = region.zstart1, region.end1
-        start_minus, end_minus, orientation = region.zstart2, region.end2, region.strand2
-        assert orientation in ['+', '-']
-        for strain in minus_seqs.keys():
-            if orientation == '+':
-                left_chunk = minus_seqs[strain][0:start]
-                added_chunk = minus_refs[strain][start_minus:end_minus] # homolog from minus ref
-                right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
-                minus_seqs[strain] = left_chunk + added_chunk + right_chunk
-            elif orientation == '-':
-                left_chunk = minus_seqs[strain][0:start]
-                added_chunk = minus_rev_refs[strain][start_minus:end_minus] # homolog from minus rev ref
-                right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
-                minus_seqs[strain] = left_chunk + added_chunk + right_chunk
-            # check for double edit
-            try:
-                current_region = [int(site) for site in list(edit_check[strain][start:end])]
-                current_region = [site + 1 for site in current_region]
-                assert 2 not in current_region # would indicate double edit
-            except AssertionError:
-                print('Error - one or more sites in the mt- sequences')
-                print('was edited twice. This indicates overlapping regions.')
-                print('The offending region was', start, '-', end, 'w/ orientation', orientation)
-                sys.exit(1)
-            else:
-                left_edit_chunk = edit_check[strain][0:start]
-                added_chunk = ''.join(['1' for i in range(end - start)])
-                right_edit_chunk = edit_check[strain][end:len(edit_check[strain])]
-                edit_check[strain] = left_edit_chunk + added_chunk + right_edit_chunk
-
-    return minus_seqs
+    return strain_seqs
 
 def main():
-    plus, minus, alignment, output = args()
+    fasta, alignment, mt_allele, output = args()
 
     # parse aln file and get region length
     aligned_regions = parse_aln(alignment)
-    mt_plus_length = get_mt_plus_length(plus)
+    seq_length = get_sequence_length(fasta)
 
-    # create dicts
-    plus_seqs, plus_refs = create_plus_dicts(plus, mt_plus_length)
-    minus_seqs, minus_refs, minus_rev_refs = create_minus_dicts(minus, mt_plus_length)
-    
-    print('Extracting mt+ gametologs...')
-    plus_seqs = add_homologous_regions_plus(plus_seqs,
-        aligned_regions, plus_refs)
-    print('Extracting mt- gametologs...')
-    minus_seqs = add_homologous_regions_minus(minus_seqs, 
-        aligned_regions, minus_refs, minus_rev_refs)
+    if mt_allele == 'plus':
+        print('mt+ allele selected.')
+        print('Extracting non-shared mt+ sites...')
+        non_shared_bases = get_non_shared_bases_plus(aligned_regions,
+            seq_length)
+    elif mt_allele == 'minus':
+        print('mt- allele selected.')
+        print('Extracting non-shared mt- sites')
+        non_shared_bases = get_non_shared_bases_minus(aligned_regions,
+            seq_length)
 
-    print('Writing to file...')
+    strain_seqs, strain_refs = create_mt_dicts(fasta, seq_length)
+    print('Creating gametolog-masked sequences...')
+    strain_seqs = add_nonhomologous_regions(strain_seqs,
+        non_shared_bases, strain_refs)
+
+    print('Writing masked sequences to ', output, '.', sep = '')
     with open(output, 'w') as f:
-        for strain in plus_seqs.keys():
+        for strain in strain_seqs.keys():
             f.write('>' + strain + '\n')
-            f.write(plus_seqs[strain] + '\n')
-        for strain in minus_seqs.keys():
-            f.write('>' + strain + '\n')
-            f.write(minus_seqs[strain] + '\n')
+            f.write(strain_seqs[strain] + '\n')
     print('Done.')
     print('Hooray!')
 
 if __name__ == '__main__':
     main()
-
         
