@@ -1,10 +1,14 @@
 '''
-align_mt_fasta.py - aligner that outputs a fasta file
+make_mt_only.py - provided fastas and lastz alignment, 
+returns non-gametolog regions only from input fastas
 
-takes in two fasta files (containing mt+ strains and mt- 
-strains respectively) as well as lastz output (--format==general) 
-to return one fasta file containing all mt+ records and mt-
-regions homologous to the mt+
+takes in a fasta file (containing strains of one mating type)
+as well as lastz output (--format=general) to return one fasta
+file containing the same strains but with gametologous regions
+masked with Ns
+
+assumes that in lastz output, the mt+ was the target and 
+the mt- the query
 '''
 
 import argparse
@@ -13,15 +17,15 @@ from Bio import SeqIO
 import sys
 
 def args():
-    parser = argparse.ArgumentParser(description = 'Create fasta file containing mt+ and mt- sequences',
-                                     usage = 'align_mt_fasta.py [options]')
+    parser = argparse.ArgumentParser(description = 'Create fasta file with shared regions masked',
+                                     usage = 'make_mt_only.py [options]')
 
-    parser.add_argument('-p', '--plus', required = True,
-                        type = str, help = 'FASTA file containing mt+ sequences.')
-    parser.add_argument('-m', '--minus', required = True,
-                        type = str, help = 'FASTA file containing mt- sequences.')
+    parser.add_argument('-f', '--fasta', required = True,
+                        type = str, help = 'FASTA file containing strain-specific sequences.')
     parser.add_argument('-a', '--alignment', required = True,
                         type = str, help = 'LASTZ alignment output (--format=general).')
+    parser.add_argument('-m', '--mt_allele', required = True,
+                        type = str, help = 'Which mating type allele? [plus/minus]')
     parser.add_argument('-o', '--output', required = True,
                         type = str, help = 'File to write to.')
 
@@ -66,21 +70,81 @@ def parse_aln(filename):
                     if not line.startswith('score')]
     return aln_file
 
-def get_mt_plus_length(filename):
+def get_sequence_length(filename):
     '''
     (str) -> int
-    gets length of mt plus region from file.
+    gets length of region from file.
     also checks that all are of the same length.
+
+    equivalent to get_mt_plus_length from align_mt_fasta.py
     '''
-    plus_length = 0
+    seq_length = 0
     counter = 0
     for record in SeqIO.parse(filename, 'fasta'):
         ind_length = len(str(record.seq))
-        plus_length += len(str(record.seq))
+        seq_length += len(str(record.seq))
         counter += 1
-        assert plus_length > 0
-    assert int(plus_length / counter) == int(ind_length) # make sure all seqs same length
+        assert seq_length > 0
+    assert int(seq_length / counter) == int(ind_length) # make sure all seqs same length
     return ind_length
+
+def get_non_shared_bases_plus(lastz_file, seq_length):
+    '''
+    (aln_file, str) -> list
+
+    returns a list of positions that _do not_ have matches
+    in the lastz alignment (ie are non-shared regions)
+
+    specifically for plus allele (bc forward orientation only)
+    '''
+    intervals = [[int(line['zstart1']), int(line['end1'])] 
+                  for line in lastz_file]
+    bases_covered = []
+
+    for start, end in tqdm(intervals):
+        values = [num for num in range(start, end)]
+        bases_covered.extend(values)
+
+    all_bases = set([i for i in range(seq_length)]) # all possible values
+    non_shared_bases = all_bases.difference(set(bases_covered))
+
+    return sorted(list(set(non_shared_bases)))
+
+def get_non_shared_bases_minus(lastz_file, seq_length):
+    '''
+    (aln_file, str) -> list, list
+
+    returns a list of positions that _do not_ have matches
+    in the lastz alignment (ie that are non-shared regions)
+
+    specifically for minus allele (bc both orientations need
+    to be considered here)
+    '''
+    intervals_fwd = [[int(line['zstart2']), int(line['end2'])] 
+                    for line in lastz_file if line['strand2'] == '+']
+    intervals_rev = [[int(line['zstart2']), int(line['end2'])]
+                    for line in lastz_file if line['strand2'] == '-']
+    bases_covered_fwd = []
+    bases_covered_rev = []
+
+    for start, end in tqdm(intervals_fwd):
+        values = [num for num in range(start, end)]
+        bases_covered_fwd.extend(values)
+    for start, end in tqdm(intervals_rev):
+        values = [num for num in range(start, end)]
+        bases_covered_rev.extend(values)
+
+    all_bases_fwd = set([i for i in range(seq_length)]) # all possible values
+    all_bases_rev = set([i for i in range(seq_length)])
+    non_shared_bases_fwd = sorted(list(
+        all_bases_fwd.difference(set(all_bases_fwd))
+        ))
+    non_shared_bases_rev = sorted(list(
+        all_bases_rev.difference(set(all_bases_rev))
+        ))
+
+    return non_shared_bases_fwd, non_shared_bases_rev
+
 
 def create_plus_dicts(filename, plus_length):
     '''
@@ -96,6 +160,8 @@ def create_plus_dicts(filename, plus_length):
 
     plus_refs - full mt+ sequences from fasta files, to
     be used to pull homologous regions from
+
+    unchanged from align_mt_fasta.py
     '''    
     plus_strains = [s.id for s in SeqIO.parse(filename, 'fasta')]
     plus_seqs = dict.fromkeys(plus_strains, '')
@@ -124,6 +190,8 @@ def create_minus_dicts(filename, plus_length):
     to be used to pull homologous regions from 
 
     minus_rev_refs - same as minus_refs, but reversed
+
+    unchanged from align_mt_fasta.py
     '''
     minus_strains = [s.id for s in SeqIO.parse(filename, 'fasta')]
     minus_seqs = dict.fromkeys(minus_strains, '')
@@ -138,7 +206,7 @@ def create_minus_dicts(filename, plus_length):
         minus_rev_refs[record.id] = str(record.reverse_complement().seq)
     return minus_seqs, minus_refs, minus_rev_refs
 
-def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs):
+def add_homologous_regions_plus(plus_seqs, non_shared_bases, plus_refs):
     '''
     (dict, aln, dict) -> dict
     takes in dictionaries from create_plus_dicts and
@@ -184,7 +252,7 @@ def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs):
     return plus_seqs
 
 
-def add_homologous_regions_minus(minus_seqs, aln_file, minus_refs, minus_rev_refs):
+def add_homologous_regions_minus(minus_seqs, non_shared_bases, minus_refs, minus_rev_refs):
     ''' 
     (dict, aln, dict, dict) -> dict
     takes in dictionaries from create_minus_dicts and
