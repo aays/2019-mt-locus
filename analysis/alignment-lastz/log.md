@@ -588,7 +588,7 @@ so whether or not we use gaps (that analysis is running right now and being logg
 containing non-gametolog regions.
 
 ```bash
-cp align_mt_fasta.py make_mt_only.fasta
+cp align_mt_fasta.py make_mt_only.py
 ```
 
 
