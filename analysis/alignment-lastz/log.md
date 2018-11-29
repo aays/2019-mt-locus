@@ -581,6 +581,21 @@ $ wc -l *
   1004 lastz-align-10k-ungapped.bed
 ```
 
+## 29/11/2018
+
+so whether or not we use gaps (that analysis is running right now and being logged in 
+`analysis/recombination-ldhelmet/log.md`), we'll be needing a script that generates fastas
+containing non-gametolog regions.
+
+```bash
+cp align_mt_fasta.py make_mt_only.fasta
+```
+
+
+
+
+
+
 
 
 

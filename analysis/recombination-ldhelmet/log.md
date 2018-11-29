@@ -109,6 +109,51 @@ time bash analysis/recombination-ldhelmet/ldhelmet_main.sh
 time bash analysis/recombination-ldhelmet/ldhelmet_alleles.sh
 ```
 
+## 29/11/2018
+
+how do gapped characters in alignments affect LDhelmet?
+
+```bash
+cp mt_aligned.fasta mt_aligned_test.fasta
+```
+
+in the new copy, I've manually added several gap characters in the first sequence:
+
+```
+1 >CC3071|chromosome_6:298299-826737
+2 ---------------------------------------------------------------------GGCGCTCACGGGGGTGCTGCCCTTCAGGGGCGCCAA
+3 >CC3076|chromosome_6:298299-826737
+4 GATTACTGTGGGCCGCGAGTACGATGGCACCAGTGTGGACATCTGGTCCATGGGCGTCATCCTGTACGAGGCGCTCACGGGGGTGCTGCCCTTCAGGGGCGCCAA
+```
+
+running ldhelmet using all the steps from `ldhelmet_main.sh` on this new file,
+I get a substantial difference in recombination estimates:
+
+```R
+> map(d, weighted_mean)
+$d_new
+# A tibble: 1 x 3
+  length weighted_rho  rho_per_bp
+   <int>        <dbl>       <dbl>
+1 528249     651.6867 0.001233673
+
+$d_old
+# A tibble: 1 x 3
+  length weighted_rho   rho_per_bp
+   <int>        <dbl>        <dbl>
+1 528249     166.4918 0.0003151767
+```
+
+last test, just to be absolutely sure - how does having Ns instead of dashes affect things? 
+(vcf2fasta generates Ns, not dashes)
+
+```bash
+cp mt_aligned_test.fasta mt_aligned_Ns.fasta
+```
+
+in this file, the exact same dashes are replaced with Ns.
+
+
 
 
 
