@@ -31,7 +31,7 @@ def args():
 
     args = parser.parse_args()
 
-    return [args.plus, args.minus, args.alignment, args.output]
+    return [args.fasta, args.alignment, args.mt_allele, args.output]
 
 class aln(object):
     '''
@@ -97,8 +97,8 @@ def get_non_shared_bases_plus(lastz_file, seq_length):
 
     specifically for plus allele (bc forward orientation only)
     '''
-    intervals = [[int(line['zstart1']), int(line['end1'])] 
-                  for line in lastz_file]
+    intervals = [[region.zstart1, region.end1] 
+                  for region in lastz_file]
     bases_covered = []
 
     for start, end in intervals:
@@ -129,8 +129,8 @@ def get_non_shared_bases_minus(lastz_file, seq_length):
     non_shared_bases = dict.fromkeys(strands)
 
     for key in intervals.keys():
-        intervals[key] = [[int(line['zstart2']), int(line['end2'])] 
-                         for line in lastz_file if line['strand2'] == key]
+        intervals[key] = [[region.zstart2, region.end2] 
+                         for region in lastz_file if region.strand2 == key]
         for start, end in intervals[key]:
             values = [num for num in range(start, end)]
             bases_covered[key].extend(values)
@@ -145,7 +145,7 @@ def get_non_shared_bases_minus(lastz_file, seq_length):
     non_shared_final = set(non_shared_bases['+']) \
                         .union(non_shared_rev_fixed)
 
-    return non_shared_bases # combined coordinates, all in fwd orientation
+    return non_shared_final # combined coordinates, all in fwd orientation
 
 def create_mt_dicts(filename, seq_length):
     '''
@@ -192,11 +192,11 @@ def add_nonhomologous_regions(strain_seqs, non_shared_bases, strain_refs):
     allele_length = len(strain_seqs[sorted(list(strain_seqs.keys()))[0]])
     edit_check = dict.fromkeys(list(strain_seqs.keys()), '')
     for strain in edit_check.keys(): # nested dict w/ positions as keys
-        edit_check[strain] = dict.fromkeys([i for i in range(plus_length)], 0)
+        edit_check[strain] = dict.fromkeys([i for i in range(allele_length)], 0)
 
     # iterate through non-shared bases list
     for site in tqdm(non_shared_bases):
-        for strain in plus_seqs.keys():
+        for strain in strain_seqs.keys():
             left_chunk = strain_seqs[strain][0:site]
             added_site = strain_refs[strain][site]
             right_chunk = strain_seqs[strain][site + 1:len(strain_seqs[strain])]
