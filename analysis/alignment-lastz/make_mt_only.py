@@ -196,7 +196,7 @@ def add_nonhomologous_regions(strain_seqs, non_shared_bases, strain_refs):
 
     # iterate through non-shared bases list
     for site in tqdm(non_shared_bases):
-        for strain in plus_seqs.keys()
+        for strain in plus_seqs.keys():
             left_chunk = strain_seqs[strain][0:site]
             added_site = strain_refs[strain][site]
             right_chunk = strain_seqs[strain][site + 1:len(strain_seqs[strain])]

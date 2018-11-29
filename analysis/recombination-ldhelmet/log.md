@@ -153,7 +153,59 @@ cp mt_aligned_test.fasta mt_aligned_Ns.fasta
 
 in this file, the exact same dashes are replaced with Ns.
 
+after running ldhelmet on this again, seems we get the same result:
 
+```R
+> library(tidyverse)
+Loading tidyverse: ggplot2
+Loading tidyverse: tibble
+Loading tidyverse: tidyr
+Loading tidyverse: readr
+Loading tidyverse: purrr
+Loading tidyverse: dplyr
+Conflicts with tidy packages ---------------------------------------------------
+filter(): dplyr, stats
+lag():    dplyr, stats
+> ldhelmet_cols <- c('left_snp', 'right_snp', 'mean', 'p025', 'p50', 'p975')
+> d_new_dash <- read_delim('ldhelmet-gap-temp/output.txt', delim = ' ', skip = 3, col_types = cols(), col_names = ldhe+ )t_cols()
+Error in ldhelmet_cols() : could not find function "ldhelmet_cols"
+> d_new_dash <- read_delim('ldhelmet-gap-temp/output.txt', delim = ' ', skip = 3,
++ col_types = cols(), col_names = ldhelmet_cols)
+> d_new_N <- read_delim('ldhelmet-gap-temp/outputN.txt', delim = ' ', skip = 3,
++ col_types = cols(), col_names = ldhelmet_cols)
+> d_old <- read_delim('data/recombination-ldhelmet/recombination-estimates/mt_locus_recombination.txt', delim = ' ',
++ skip = 3, col_types = cols(), col_names = ldhelmet_cols)
+> weighted_mean <- function(df) {
++     output <- df %>%
++         transmute(length = right_snp - left_snp,
++                   weighted_rho = mean * length) %>%
++         summarise_all(sum) %>%
++         mutate(rho_per_bp = weighted_rho / length)
++     return(output)
++ }
+> d <- list(d_new_dash, d_new_N, d_old)
+> names(d) <- c('d_new_dash', 'd_new_N', 'd_old')
+> map(d, weighted_mean)
+$d_new_dash
+# A tibble: 1 x 3
+  length weighted_rho  rho_per_bp
+   <int>        <dbl>       <dbl>
+1 528249     651.6867 0.001233673
+
+$d_new_N
+# A tibble: 1 x 3
+  length weighted_rho  rho_per_bp
+   <int>        <dbl>       <dbl>
+1 528249     651.6867 0.001233673
+
+$d_old
+# A tibble: 1 x 3
+  length weighted_rho   rho_per_bp
+   <int>        <dbl>        <dbl>
+1 528249     166.4918 0.0003151767
+```
+
+so Ns should be fine when we're making the aligned fasta file. 
 
 
 

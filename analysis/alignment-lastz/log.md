@@ -591,8 +591,22 @@ containing non-gametolog regions.
 cp align_mt_fasta.py make_mt_only.py
 ```
 
+### update
 
+now that this script has been written, let's give it a shot
+and see if there are any outstanding errors:
 
+```bash
+Rscript analysis/alignment-lastz/clean_lastz_output.R \
+    --file data/alignment-lastz/lastz-align-10k-gapped.bed \
+    --outfile data/alignment-lastz/lastz-align-gapped-filtered.bed
+
+time python3.5 analysis/alignment-lastz/make_mt_only.py \
+    --fasta data/aligned-fastas/minus_strains_ref.fasta \
+    --alignment data/alignment-lastz/lastz-align-gapped-filtered.bed \
+    --mt_allele minus \
+    --output data/alignment-lastz/minus_gametolog_masked.fasta
+```
 
 
 
