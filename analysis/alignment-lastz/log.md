@@ -770,10 +770,36 @@ guess not.
 
 another thing to look into tomorrow!
 
+in the meantime, I've noticed that the scores are MUCH higher
+in the gapped alignment.
 
+```R
+> colnames(d)[1] <- 'score'
+> summary(d$score)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+  10709   20791   37506  147630   89860 3857474
+```
 
+as compared to:
 
+```R
+> colnames(d_old)[1] <- 'score'
+> summary(d_old$score)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+  10024   13995   20237   32111   35346  290108
+```
 
+what does a higher threshold give us?
+
+```bash
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-100k-gapped.bed \
+--hspthresh=100000 \
+--format=general
+```
+
+okay, doesn't really pass the eye test - clear gametologs from the 
+geneious alignment have been excluded. 
 
 
 
