@@ -200,6 +200,7 @@ def add_nonhomologous_regions(strain_seqs, non_shared_bases, strain_refs):
             left_chunk = strain_seqs[strain][0:site]
             added_site = strain_refs[strain][site]
             right_chunk = strain_seqs[strain][site + 1:len(strain_seqs[strain])]
+            strain_seqs[strain] = left_chunk + added_site + right_chunk
 
         # check for double edit
             try:

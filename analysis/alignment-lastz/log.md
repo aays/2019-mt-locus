@@ -801,5 +801,41 @@ time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
 okay, doesn't really pass the eye test - clear gametologs from the 
 geneious alignment have been excluded. 
 
+## 30/11/2018
+
+today:
+- debugging the allele separated script - why are we getting all Ns?
+- debugging the main alignment script - why are the two strains diff lengths?
+
+### allele separated script
+
+if I have the script return the number of non shared bases
+vs the total length of the sequence, I get 245406 unique bases
+and the expected seq length of 528409 - which tells me something's
+going wrong in the output sequence generation
+
+update: the script was masking stuff but then just rewriting the input file
+back to the outfile! unbelievable.
+
+```bash
+time python3.5 analysis/alignment-lastz/make_mt_only.py \
+--fasta data/aligned-fastas/plus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-gapped-filtered.bed \
+--mt_allele plus \
+--output data/aligned-fastas/plus_non_gametolog.fasta
+
+time python3.5 analysis/alignment-lastz/make_mt_only.py \
+--fasta data/aligned-fastas/minus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-gapped-filtered.bed \
+--mt_allele minus \
+--output data/aligned-fastas/minus_non_gametolog.fasta
+```
+
+
+
+
+
+
+
 
 
