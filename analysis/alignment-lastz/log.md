@@ -831,6 +831,27 @@ time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --output data/aligned-fastas/minus_non_gametolog.fasta
 ```
 
+### main aligned script
+
+so the current issue is that strains from the two mating types seem
+to be slightly misaligned, and that the plus side is longer than the minus
+
+first, are there size discrepancies in the filtered gapped alignment itself?
+
+```R
+> d <- read_tsv('lastz-align-gapped-filtered.bed', col_types = cols())
+> colnames(d)[1] <- 'score'
+> d %>%
++ mutate(length1 = end1 - zstart1, length2 = end2 - zstart2) %>%
++ summarise(plus_sum = sum(length1), minus_sum = sum(length2))
+# A tibble: 1 x 2
+  plus_sum minus_sum
+     <int>     <int>
+1   283033    283033
+```
+
+doesn't seem to be the case - but despite this, the minus alignment is
+shorter than the plus
 
 
 
