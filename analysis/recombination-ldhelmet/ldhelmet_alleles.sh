@@ -1,7 +1,7 @@
-# ldhelmet on the mt alleles individually
+# ldhelmet on the non-gametolog parts of the mt alleles individually
 
 for allele in plus minus; do
-    filename=${allele}_strains_ref.fasta;
+    filename=${allele}_non_gametolog.fasta;
 
     time ./bin/ldhelmet find_confs \
     --num_threads 10 \

@@ -208,6 +208,23 @@ $d_old
 so Ns should be fine when we're making the aligned fasta file. 
 
 
+## 30/11/2018
+
+so now that the mt separated files have been fixed, we can
+get to running ldhelmet on both of them.
+
+running `ldhelmet_alleles.sh` after editing:
+
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet_alleles.sh
+```
+
+
+
+
+
+
+
 
 
 
