@@ -138,7 +138,7 @@ def create_minus_dicts(filename, plus_length):
         minus_rev_refs[record.id] = str(record.reverse_complement().seq)
     return minus_seqs, minus_refs, minus_rev_refs
 
-def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs):
+def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs, plus_length):
     '''
     (dict, aln, dict) -> dict
     takes in dictionaries from create_plus_dicts and
@@ -152,10 +152,10 @@ def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs):
     in the 5' -> 3' orientation
     '''
     # make dummy dict to keep track of changes
-    plus_length = len(plus_seqs[sorted(list(plus_seqs.keys()))[0]])
     edit_check = dict.fromkeys(list(plus_seqs.keys()), '')
     for strain in edit_check.keys():
         edit_check[strain] = ''.join(['0' for i in range(plus_length)])
+    added_count = 0
 
     # iterate through alignment
     for region in tqdm(aln_file):
@@ -165,6 +165,7 @@ def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs):
             added_chunk = plus_refs[strain][start:end]
             right_chunk = plus_seqs[strain][end:len(plus_seqs[strain])]
             plus_seqs[strain] = left_chunk + added_chunk + right_chunk
+            added_count += len(added_chunk)
 
             # check for double edit
             try:
@@ -181,10 +182,11 @@ def add_homologous_regions_plus(plus_seqs, aln_file, plus_refs):
                 added_chunk = ''.join(['1' for i in range(end - start)])
                 right_edit_chunk = edit_check[strain][end:len(edit_check[strain])]
                 edit_check[strain] = left_edit_chunk + added_chunk + right_edit_chunk
+    print(added_count / len(plus_seqs.keys()))
     return plus_seqs
 
 
-def add_homologous_regions_minus(minus_seqs, aln_file, minus_refs, minus_rev_refs):
+def add_homologous_regions_minus(minus_seqs, aln_file, minus_refs, minus_rev_refs, plus_length):
     ''' 
     (dict, aln, dict, dict) -> dict
     takes in dictionaries from create_minus_dicts and
@@ -194,10 +196,10 @@ def add_homologous_regions_minus(minus_seqs, aln_file, minus_refs, minus_rev_ref
     will also check that regions are not edited twice
     '''
     # make dummy dict to keep track of changes
-    plus_length = len(minus_seqs[sorted(list(minus_seqs.keys()))[0]])
     edit_check = dict.fromkeys(list(minus_seqs.keys()), '')
     for strain in edit_check.keys():
         edit_check[strain] = ''.join(['0' for i in range(plus_length)])
+    added_count = 0
 
     # iterate through alignment
     for region in tqdm(aln_file):
@@ -210,11 +212,13 @@ def add_homologous_regions_minus(minus_seqs, aln_file, minus_refs, minus_rev_ref
                 added_chunk = minus_refs[strain][start_minus:end_minus] # homolog from minus ref
                 right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
                 minus_seqs[strain] = left_chunk + added_chunk + right_chunk
+                added_count += len(added_chunk)
             elif orientation == '-':
                 left_chunk = minus_seqs[strain][0:start]
                 added_chunk = minus_rev_refs[strain][start_minus:end_minus] # homolog from minus rev ref
                 right_chunk = minus_seqs[strain][end:len(minus_seqs[strain])]
                 minus_seqs[strain] = left_chunk + added_chunk + right_chunk
+                added_count += len(added_chunk)
             # check for double edit
             try:
                 current_region = [int(site) for site in list(edit_check[strain][start:end])]
@@ -231,6 +235,7 @@ def add_homologous_regions_minus(minus_seqs, aln_file, minus_refs, minus_rev_ref
                 right_edit_chunk = edit_check[strain][end:len(edit_check[strain])]
                 edit_check[strain] = left_edit_chunk + added_chunk + right_edit_chunk
 
+    print(added_count / len(minus_seqs.keys()))
     return minus_seqs
 
 def main():
@@ -246,10 +251,10 @@ def main():
     
     print('Extracting mt+ gametologs...')
     plus_seqs = add_homologous_regions_plus(plus_seqs,
-        aligned_regions, plus_refs)
+        aligned_regions, plus_refs, mt_plus_length)
     print('Extracting mt- gametologs...')
     minus_seqs = add_homologous_regions_minus(minus_seqs, 
-        aligned_regions, minus_refs, minus_rev_refs)
+        aligned_regions, minus_refs, minus_rev_refs, mt_plus_length)
 
     print('Writing to file...')
     with open(output, 'w') as f:

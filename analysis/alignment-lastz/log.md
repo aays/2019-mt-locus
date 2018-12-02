@@ -853,6 +853,36 @@ first, are there size discrepancies in the filtered gapped alignment itself?
 doesn't seem to be the case - but despite this, the minus alignment is
 shorter than the plus
 
+```bash
+time python3.5 analysis/alignment-lastz/align_mt_fasta.py \
+--plus data/aligned-fastas/plus_strains_ref.fasta \
+--minus data/aligned-fastas/minus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-gapped-filtered.bed \
+--output test.out
+```
+
+## 1/12/2018
+
+testing alternate lastz output formats to
+examine the gaps:
+
+```bash
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-10k-gapped.maf \
+--hspthresh=10000 \
+--format=maf
+```
+
+let's test whether this aligns with the nogap thing:
+
+```bash
+sed -n '16,17p' lastz-align-10k-gapped.maf > test_align.maf
+```
+
+not quite, upon manual inspection. we'll have to iterate through
+the maf file and create a new mt aligning script
+
+
 
 
 
