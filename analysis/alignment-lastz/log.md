@@ -882,11 +882,38 @@ sed -n '16,17p' lastz-align-10k-gapped.maf > test_align.maf
 not quite, upon manual inspection. we'll have to iterate through
 the maf file and create a new mt aligning script
 
+## 3/12/2018
 
+so this is proving a bit difficult - I'm updating the script to read the bed as
+an ancillary file, which it will use to avoid duplicates
 
+cleaning the bed:
 
+```R
+library(tidyverse)
+library(magrittr)
+d <- read_tsv('lastz-align-10k-gapped.bed')
+d %<>%
+    group_by(zstart1) %>%
+    filter(score == max(score)) %>%
+    ungroup()
+write_tsv(d, 'lastz-align-10k-gapped-score.bed')
+```
 
+instead of the original single-fasta plan:
 
-
+- from each maf alignment, if matched in filtered bed, create a fasta file containing the alignment
+    - filtered bed will have removed multiple mt- matches and picked the one with the highest score
+    - this alignment will grab the relevant mt+ and mt- strains
+    - the header of the fasta should contain the _actual_ coordinates of the sequence
+        - by actual, this should mean both the coordinates wrt the mt AND chromosome 6 as a whole
+    - due to the gapped alignment these will likely not correspond to the length of the seqs
+- next, run LDhelmet on each of these to get recombination rate estimates for each alignment
+- creating a 'full mt locus fasta':
+    - this will follow the mt+ coordinates, as originally planned
+    - however, handling of gaps will be different
+        - in cases where mt+ has a gap, the mt- sequence at the gap will be omitted
+        - ie insertions in the mt- will be removed
+        - if the mt- has a gap, we just ignore it/replace it with Ns
 
 
