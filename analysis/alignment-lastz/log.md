@@ -893,11 +893,13 @@ cleaning the bed:
 library(tidyverse)
 library(magrittr)
 d <- read_tsv('lastz-align-10k-gapped.bed')
+colnames(d)[1] <- 'score'
 d %<>%
     group_by(zstart1) %>%
-    filter(score == max(score)) %>%
+    filter(score == max(score),
+           zstart2 == min(zstart2)) %>%
     ungroup()
-write_tsv(d, 'lastz-align-10k-gapped-score.bed')
+write_tsv(d, 'lastz-align-10k-gapped-filtered.bed')
 ```
 
 instead of the original single-fasta plan:
@@ -915,5 +917,8 @@ instead of the original single-fasta plan:
         - in cases where mt+ has a gap, the mt- sequence at the gap will be omitted
         - ie insertions in the mt- will be removed
         - if the mt- has a gap, we just ignore it/replace it with Ns
+
+note that in the maf file, the size reported does _not_ contain gaps,
+nor does the interval size in the equivalent bed file.
 
 
