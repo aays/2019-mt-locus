@@ -126,39 +126,57 @@ def parse_aln(filename):
     return correct_starts
 
 
-def get_strain_refs(filename):
+def get_strain_refs(filename, reverse = False):
     seqs = {}
-    for record in SeqIO.parse(filename, 'fasta'):
-        seqs[record.id] = record.seq
+    if not reverse:
+        for record in SeqIO.parse(filename, 'fasta'):
+            seqs[record.id] = record.seq
+    elif reverse:
+        for record in SeqIO.parse(filename, 'fasta'):
+            seqs[record.id] = record.reverse_complement().seq
     return seqs
+
         
 
-def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, outdir):
+def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict, outdir):
     for a in aln_file.alignments():
         score, start1, start2 = a.score, a.start1, a.start2
         # check to see this is the correct alignment
         if correct_starts[start1] != [score, start2]:
             continue
         elif correct_starts[start1] == [score, start2]:
-            plus_seqs_out = dict.fromkeys(list(plus_seqs.keys(), '')
-            minus_seqs_out = dict.fromkeys(list(minus_seqs.keys(), '')
+            plus_seqs_out = dict.fromkeys(list(plus_seqs.keys()), '')
+            minus_seqs_out = dict.fromkeys(list(minus_seqs.keys()), '')
             chr6_start = 298298 + start1
             chr6_end = 298298 + start1 + a.size1
+
+            # plus sequence
             for i, base in enumerate(a.seq1):
                 for strain in plus_seqs_out:
                     if base == '-':
                         plus_seqs_out[strain] += '-'
                     else:
-                        plus_seqs_out[strain] += plus_seqs[strain][i]
+                        plus_seqs_out[strain] += plus_dict[strain][i]
+
+            # minus sequence
             for i, base in enumerate(a.seq2):
-                for strain in minus_seqs_out:
-                    if base == '-':
-                        minus_seqs_out[strain] += '-'
-                    else:
-                        minus_seqs_out[strain] += minus_seqs[strain][i]
+                if a.strand2 == '+':
+                    for strain in minus_seqs_out:
+                        if base == '-':
+                            minus_seqs_out[strain] += '-'
+                        else:
+                            minus_seqs_out[strain] += minus_dict[strain][i]
+                elif a.strand2 == '-':
+                    for strain in minus_seqs_out:
+                        if base == '-':
+                            minus_seqs_out[strain] += '-'
+                        else:
+                            minus_seqs_out += minus_rev_dict[strain][i]
+
             outname = outdir + 'chromosome_6_' + str(chr6_start) + str(chr6_end)
             seq_id_plus = 'chromosome_6:' + str(chr6_start) + '-' + str(chr6_end)
-            seq_id_minus = 'mtMinus:' + str(a.start2) + '-' + str(a.start2 + a.size2)
+            seq_id_minus = 'mtMinus:' + str(a.start2) + '-' + \
+                str(a.start2 + a.size2) + '|orientation=' + str(a.strand2)
             with open(outname, 'w') as f:
                 for strain in plus_seqs_out.keys():
                     f.write('>' + seq_id_plus + '\n')
@@ -179,10 +197,12 @@ def main():
     print('Parsing FASTA files...')
     plus_refs = get_strain_refs(plus)
     minus_refs = get_strain_refs(minus)
+    minus_rev_refs = get_strain_refs(minus, reverse = True)
 
     # write fastas
     print('Writing aligned FASTA files...')
-    write_fastas(aln_maf, correct_starts, plus_refs, minus_refs, outdir)
+    write_fastas(aln_maf, correct_starts, 
+        plus_refs, minus_refs, minus_rev_refs, outdir)
 
     print('Done.')
 
