@@ -896,8 +896,8 @@ d <- read_tsv('lastz-align-10k-gapped.bed')
 colnames(d)[1] <- 'score'
 d %<>%
     group_by(zstart1) %>%
-    filter(score == max(score),
-           zstart2 == min(zstart2)) %>%
+    filter(score == max(score)) %>% 
+    filter(zstart2 == min(zstart2)) %>%
     ungroup()
 write_tsv(d, 'lastz-align-10k-gapped-filtered.bed')
 ```
@@ -920,5 +920,63 @@ instead of the original single-fasta plan:
 
 note that in the maf file, the size reported does _not_ contain gaps,
 nor does the interval size in the equivalent bed file.
+
+
+## 12/12/2018
+
+first pass attempt at the script:
+
+```bash
+mkdir data/aligned-fastas/alignments
+
+time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
+--plus data/aligned-fastas/plus_strains_ref.fasta \
+--minus data/aligned-fastas/minus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-10k-gapped.maf \
+--bed data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--outdir data/aligned-fastas/alignments
+```
+
+it works! and it only takes 9 seconds!!!
+
+next - scope out some of these manually in the maf
+to make sure they were correctly added - ie the one at 760104
+
+
+## 13/12/2018
+
+upon manual inspection, it's looking like some of these were
+actually misaligned, and that the same chunk of strain
+sequence keeps getting drawn from the references
+
+the issue looks to be that when the script draws from
+the strain sequences, it always starts from 0, and not
+where the actual match starts
+
+trying the script again after fixing this:
+
+```
+time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
+--plus data/aligned-fastas/plus_strains_ref.fasta \
+--minus data/aligned-fastas/minus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-10k-gapped.maf \
+--bed data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--outdir data/aligned-fastas/alignments
+```
+
+two things -
+1. this now raises an `IndexError` - it seems there is
+an `i + start1` combination that's somehow larger than
+the entire sequence - check the ones at the end
+2. when looking at the ones at the end, make sure the
+maf actually aligns with what's in the bed - right now,
+it sort of looks like there are some extra files in the output
+(although they're listed earlier in the bed... why are these
+out of order again? maybe remake the bed so that it's in
+ascending order of `zstart1` for easier comparison)
+
+
+
+
 
 

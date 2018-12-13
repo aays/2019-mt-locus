@@ -24,7 +24,8 @@ def args():
 
     args = parser.parse_args()
 
-    return [args.plus, args.minus, args.alignment, args.outdir]
+    return [args.plus, args.minus, args.alignment, 
+            args.bed, args.outdir]
 
 class aln_bed(object):
     '''
@@ -37,12 +38,12 @@ class aln_bed(object):
         self.score = score
         self.name1 = name1
         self.strand1 = strand1
-        self.size1 = size1
+        self.size1 = int(size1)
         self.zstart1 = int(zstart1) # origin-zero
         self.end1 = int(end1)
         self.name2 = name2
         self.strand2 = strand2
-        self.size2 = size2
+        self.size2 = int(size2)
         self.zstart2 = int(zstart2) # origin-zero, orientation dependent
         self.end2 = int(end2)
         self.identity = [int(num) for num in str(identity).split('/')]
@@ -62,13 +63,13 @@ class aln(object):
         self.start1 = int(start1) # origin-zero
         self.match_size1 = int(match_size1)
         self.strand1 = strand1
-        self.size1 = size1
+        self.size1 = int(size1)
         self.seq1 = SeqIO.SeqRecord(Seq(seq1.rstrip('\n')))
         self.name2 = name2
         self.start2 = int(start2) # origin-zero, orientation dependent
         self.match_size2 = int(match_size2)
         self.strand2 = strand2
-        self.size2 = size2
+        self.size2 = int(size2)
         self.seq2 = SeqIO.SeqRecord(Seq(seq2.rstrip('\n')))
 
 class aln_file(object):
@@ -113,7 +114,7 @@ def parse_aln(filename):
     expects --format=general
     '''
     with open(filename) as f:
-        aln_bed_file = [aln(*line.split('\t')) 
+        aln_bed_file = [aln_bed(*line.split('\t')) 
                         for line in f.readlines() 
                         if not line.startswith('score')]
         # choosing best lastz hit
@@ -145,10 +146,10 @@ def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict
         if correct_starts[start1] != [score, start2]:
             continue
         elif correct_starts[start1] == [score, start2]:
-            plus_seqs_out = dict.fromkeys(list(plus_seqs.keys()), '')
-            minus_seqs_out = dict.fromkeys(list(minus_seqs.keys()), '')
+            plus_seqs_out = dict.fromkeys(list(plus_dict.keys()), '')
+            minus_seqs_out = dict.fromkeys(list(minus_dict.keys()), '')
             chr6_start = 298298 + start1
-            chr6_end = 298298 + start1 + a.size1
+            chr6_end = 298298 + start1 + a.match_size1
 
             # plus sequence
             for i, base in enumerate(a.seq1):
@@ -156,7 +157,7 @@ def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict
                     if base == '-':
                         plus_seqs_out[strain] += '-'
                     else:
-                        plus_seqs_out[strain] += plus_dict[strain][i]
+                        plus_seqs_out[strain] += plus_dict[strain][i + start1]
 
             # minus sequence
             for i, base in enumerate(a.seq2):
@@ -165,18 +166,18 @@ def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict
                         if base == '-':
                             minus_seqs_out[strain] += '-'
                         else:
-                            minus_seqs_out[strain] += minus_dict[strain][i]
+                            minus_seqs_out[strain] += minus_dict[strain][i + start2]
                 elif a.strand2 == '-':
                     for strain in minus_seqs_out:
                         if base == '-':
                             minus_seqs_out[strain] += '-'
                         else:
-                            minus_seqs_out += minus_rev_dict[strain][i]
+                            minus_seqs_out[strain] += minus_rev_dict[strain][i + start2]
 
-            outname = outdir + 'chromosome_6_' + str(chr6_start) + str(chr6_end)
+            outname = outdir + 'chromosome_6_' + str(chr6_start) + '-' + str(chr6_end)
             seq_id_plus = 'chromosome_6:' + str(chr6_start) + '-' + str(chr6_end)
             seq_id_minus = 'mtMinus:' + str(a.start2) + '-' + \
-                str(a.start2 + a.size2) + '|orientation=' + str(a.strand2)
+                str(a.start2 + a.match_size2) + '|orientation=' + str(a.strand2)
             with open(outname, 'w') as f:
                 for strain in plus_seqs_out.keys():
                     f.write('>' + seq_id_plus + '\n')
@@ -208,23 +209,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-                
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
 
