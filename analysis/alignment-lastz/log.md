@@ -1004,6 +1004,8 @@ time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --output data/aligned-fastas/minus_non_gametolog.fasta
 ```
 
+for some reason this didn't work properly on the minus (based on the eye test)
+
 and now - onto LDhelmet once again!
 
 

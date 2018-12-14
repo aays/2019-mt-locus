@@ -141,7 +141,7 @@ def get_strain_refs(filename, reverse = False):
         
 
 def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict, outdir):
-    for a in aln_file.alignments():
+    for a in tqdm(aln_file.alignments()):
         score, start1, start2 = a.score, a.start1, a.start2
         # check to see this is the correct alignment
         if correct_starts[start1] != [score, start2]:
