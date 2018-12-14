@@ -993,18 +993,18 @@ strains using the new filtered bed file:
 ```bash
 time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --fasta data/aligned-fastas/plus_strains_ref.fasta \
---alignment data/alignment-lastz/lastz-align-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
 --mt_allele plus \
 --output data/aligned-fastas/plus_non_gametolog.fasta
 
 time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --fasta data/aligned-fastas/minus_strains_ref.fasta \
---alignment data/alignment-lastz/lastz-align-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
 --mt_allele minus \
 --output data/aligned-fastas/minus_non_gametolog.fasta
 ```
 
-anyhow, onto LDhelmet once again!
+and now - onto LDhelmet once again!
 
 
 
