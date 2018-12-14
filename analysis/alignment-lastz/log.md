@@ -961,11 +961,10 @@ time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
 --minus data/aligned-fastas/minus_strains_ref.fasta \
 --alignment data/alignment-lastz/lastz-align-10k-gapped.maf \
 --bed data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
---outdir data/aligned-fastas/alignments
+--outdir data/aligned-fastas/alignments/
 ```
 
-two things -
-1. this now raises an `IndexError` - it seems there is
+this now raises an `IndexError` - it seems there is
 an `i + start1` combination that's somehow larger than
 the entire sequence - check the ones at the end
 2. when looking at the ones at the end, make sure the
@@ -975,7 +974,37 @@ it sort of looks like there are some extra files in the output
 out of order again? maybe remake the bed so that it's in
 ascending order of `zstart1` for easier comparison)
 
+## 14/12/2018
 
+THE SCRIPT WORKED!
+
+although I'm noticing from the output files that
+some have different starts but end at the same position (ie
+ending at 796207)
+
+though that being said, LDhelmet will likely calculate 
+the same values for the same regions in both - and so
+these can be concatenated in the LDhelmet outputs
+and duplicates removed
+
+finally, let's make the mt-separated versions of these
+strains using the new filtered bed file:
+
+```bash
+time python3.5 analysis/alignment-lastz/make_mt_only.py \
+--fasta data/aligned-fastas/plus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-gapped-filtered.bed \
+--mt_allele plus \
+--output data/aligned-fastas/plus_non_gametolog.fasta
+
+time python3.5 analysis/alignment-lastz/make_mt_only.py \
+--fasta data/aligned-fastas/minus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-gapped-filtered.bed \
+--mt_allele minus \
+--output data/aligned-fastas/minus_non_gametolog.fasta
+```
+
+anyhow, onto LDhelmet once again!
 
 
 

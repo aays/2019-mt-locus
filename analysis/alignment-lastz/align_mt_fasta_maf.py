@@ -6,6 +6,7 @@ from tqdm import tqdm
 import argparse
 from Bio.Seq import Seq
 from Bio import SeqIO
+import sys
 
 def args():
     parser = argparse.ArgumentParser(description = 'Create fasta file containing mt+ and mt- sequences',
@@ -152,27 +153,49 @@ def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict
             chr6_end = 298298 + start1 + a.match_size1
 
             # plus sequence
+            position = -1
+            was_gap = False
             for i, base in enumerate(a.seq1):
+                # if previous base was not a gap, increment position
+                # but if previous base was a gap, keep position the same
+                # otherwise the script would skip over bases positioned where gaps are
+                if not was_gap: 
+                    position += 1 
+                elif was_gap: 
+                    position += 0 
                 for strain in plus_seqs_out:
                     if base == '-':
                         plus_seqs_out[strain] += '-'
+                        was_gap = True
                     else:
-                        plus_seqs_out[strain] += plus_dict[strain][i + start1]
+                        plus_seqs_out[strain] += plus_dict[strain][position + start1]
+                        was_gap = False
 
             # minus sequence
+            # reset tracking parameters
+            position = -1
+            was_gap = False
             for i, base in enumerate(a.seq2):
+                if not was_gap:
+                    position += 1
+                elif was_gap:
+                    position += 0
                 if a.strand2 == '+':
                     for strain in minus_seqs_out:
                         if base == '-':
                             minus_seqs_out[strain] += '-'
+                            was_gap = True
                         else:
-                            minus_seqs_out[strain] += minus_dict[strain][i + start2]
+                            minus_seqs_out[strain] += minus_dict[strain][position + start2]
+                            was_gap = False
                 elif a.strand2 == '-':
                     for strain in minus_seqs_out:
                         if base == '-':
                             minus_seqs_out[strain] += '-'
+                            was_gap = True
                         else:
                             minus_seqs_out[strain] += minus_rev_dict[strain][i + start2]
+                            was_gap = False
 
             outname = outdir + 'chromosome_6_' + str(chr6_start) + '-' + str(chr6_end)
             seq_id_plus = 'chromosome_6:' + str(chr6_start) + '-' + str(chr6_end)
