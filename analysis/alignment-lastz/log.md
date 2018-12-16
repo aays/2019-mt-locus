@@ -1006,8 +1006,14 @@ time python3.5 analysis/alignment-lastz/make_mt_only.py \
 
 for some reason this didn't work properly on the minus (based on the eye test)
 
-and now - onto LDhelmet once again!
+## 16/12/2018
 
+today: debugging what went wrong with the minus non-gametolog file
 
+update - not sure what was going wrong - manually reran the functions in the
+script and everything added up, and upon rerunning the script the correct
+output file was generated. must have made a typo the first time...
+
+onto LDhelmet!
 
 
