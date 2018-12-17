@@ -243,9 +243,24 @@ we also need scripts that do this for the mt-separated files:
 1. run LDhelmet on entire masked mt locus
 2. read in values and return mean rho value ignoring the masked regions
 
+first attempt at new script:
 
+```bash
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_init.py \
+--directory data/aligned-fastas/alignments \
+--ldhelmet bin/ldhelmet \
+--outdir data/recombination-ldhelmet/recombination-estimates/
+```
 
+this seems to be clogging up memory - let's try 
+`subprocess.call` (line 100)
 
+if this works, push to repo
+
+update: it didn't work - write a shell script tomorrow
+instead that uses basename etc to do the same thing
+
+make sure it also clears out temp files!
 
 
 
