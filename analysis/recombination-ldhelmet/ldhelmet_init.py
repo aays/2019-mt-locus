@@ -9,6 +9,7 @@ import argparse
 import os
 import glob
 import subprocess
+from tqdm import tqdm
 
 def args():
     parser = argparse.ArgumentParser(description = 'ldhelmet_init.py - initial LDhelmet run',
