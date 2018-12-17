@@ -11,8 +11,8 @@ import glob
 import subprocess
 
 def args():
-    parser = argparse.ArgumentParser(description = '',
-                                     usage = 'script.py [options]')
+    parser = argparse.ArgumentParser(description = 'ldhelmet_init.py - initial LDhelmet run',
+                                     usage = 'ldhelmet_int.py [options]')
 
     parser.add_argument('-d', '--directory', required = True,
                         type = str, help = 'Directory containing files.')
@@ -35,54 +35,54 @@ def run_ldhelmet(alignment_file, ldhelmet_path, directory, outdir):
         outdir += '/'
 
     find_confs = '{ldhelmet} find_confs \
-        --num_threads 10 \
-        --window_size 50 \
-        --output_file {directory}temp/output.conf \
-        {alignment_file}'.format(
-            ldhelmet = ldhelmet_path, 
-            directory = directory,
-            alignment_file = alignment_file)
+    --num_threads 10 \
+    --window_size 50 \
+    --output_file {directory}temp/output.conf \
+    {alignment_file}'.format(
+        ldhelmet = ldhelmet_path, 
+        directory = directory,
+        alignment_file = alignment_file)
 
     table_gen = '{ldhelmet} table_gen \
-        --num_threads 10 \
-        --conf_file {directory}temp/output.conf \
-        --theta 0.01 \
-        --rhos 0.0 0.1 10.0 1.0 100.0 \
-        --output_file {directory}temp/output.lk'.format(
-            ldhelmet = ldhelmet_path,
-            directory = directory)
+    --num_threads 10 \
+    --conf_file {directory}temp/output.conf \
+    --theta 0.01 \
+    --rhos 0.0 0.1 10.0 1.0 100.0 \
+    --output_file {directory}temp/output.lk'.format(
+        ldhelmet = ldhelmet_path,
+        directory = directory)
 
     pade = '{ldhelmet} pade \
-        --num_threads 10 \
-        --conf_file {directory}temp/output.conf \
-        --theta 0.01 \
-        --output_file {directory}temp/output.pade'.format(
-            ldhelmet = ldhelmet_path,
-            directory = directory)
+    --num_threads 10 \
+    --conf_file {directory}temp/output.conf \
+    --theta 0.01 \
+    --output_file {directory}temp/output.pade'.format(
+        ldhelmet = ldhelmet_path,
+        directory = directory)
 
     rjmcmc = '{ldhelmet} rjmcmc \
-        --num_threads 10 \
-        --window_size 50 \
-        --seq_file {alignment_file} \
-        --lk_file {directory}temp/output.lk \
-        --pade_file {directory}temp/output.pade \
-        --num_iter 1000000 --burn_in 100000 \
-        --block_penalty 50 \
-        --output_file {directory}temp/output.post'.format(
-            ldhelmet = ldhelmet_path,
-            directory = directory,
-            alignment_file = alignment_file)
+    --num_threads 10 \
+    --window_size 50 \
+    --seq_file {alignment_file} \
+    --lk_file {directory}temp/output.lk \
+    --pade_file {directory}temp/output.pade \
+    --num_iter 1000000 --burn_in 100000 \
+    --block_penalty 50 \
+    --output_file {directory}temp/output.post'.format(
+        ldhelmet = ldhelmet_path,
+        directory = directory,
+        alignment_file = alignment_file)
 
     coordinates = alignment_file.split('/')[-1].split('.')[0]
     post_to_text = '{ldhelmet} post_to_text \
-        --mean \
-        --perc 0.025 \
-        --perc 0.50 \
-        --perc 0.975 \
-        --output_file {outdir}{coordinates}.txt'.format(
-            ldhelmet = ldhelmet_path,
-            outdir = outdir,
-            coordinates = coordinates)
+    --mean \
+    --perc 0.025 \
+    --perc 0.50 \
+    --perc 0.975 \
+    --output_file {outdir}{coordinates}.txt'.format(
+        ldhelmet = ldhelmet_path,
+        outdir = outdir,
+        coordinates = coordinates)
 
     cmds = [find_confs, table_gen, pade, rjmcmc, post_to_text]
     for cmd in cmds:
@@ -104,7 +104,7 @@ def main():
     fnames = glob.glob(directory + '*fasta')
     
     for alignment in fnames:
-        run_ldhelmet()
+        run_ldhelmet(alignment, ldhelmet, directory, outdir)
 
 if __name__ == '__main__':
     main()
