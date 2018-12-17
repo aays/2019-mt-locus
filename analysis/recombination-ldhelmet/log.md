@@ -262,6 +262,18 @@ instead that uses basename etc to do the same thing
 
 make sure it also clears out temp files!
 
+## 17/12/2018
+
+first attempt at shell script equivalent:
+
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet_init.sh
+```
+
+
+
+
+
 
 
 

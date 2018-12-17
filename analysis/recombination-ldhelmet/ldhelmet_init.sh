@@ -4,7 +4,7 @@ mkdir -p data/recombination-ldhelmet/intermediate-files
 mkdir -p data/recombination-ldhelmet/recombination-estimates
 
 count=1
-filecount="$(ls data/aligned-fastas/alignments/ | wc -l)"
+filecount="$(ls data/aligned-fastas/alignments/*fasta | wc -l)"
 
 for filename in data/aligned-fastas/alignments/*fasta; do
     base=$(basename $filename .fasta)
@@ -15,7 +15,7 @@ for filename in data/aligned-fastas/alignments/*fasta; do
     time ./bin/ldhelmet find_confs \
     --num_threads 10 \
     --window_size 50 \
-    --output_file data/recombination-ldhelmet/intermediate-files/${base}.conf ${infile}
+    --output_file data/recombination-ldhelmet/intermediate-files/${base}.conf ${filename}
 
     time ./bin/ldhelmet table_gen \
     --num_threads 10 \
@@ -53,4 +53,5 @@ for filename in data/aligned-fastas/alignments/*fasta; do
     (( count ++ ))
 
     echo "Removing temp files..."
-    rm -v data/recombination-ldhelmet/intermediate-files/${base}.*
+    rm -v data/recombination-ldhelmet/intermediate-files/${base}.* ;
+done
