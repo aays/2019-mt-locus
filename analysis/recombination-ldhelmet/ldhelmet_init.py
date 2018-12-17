@@ -33,6 +33,8 @@ def run_ldhelmet(alignment_file, ldhelmet_path, directory, outdir):
         directory += '/'
     if not outdir.endswith('/'):
         outdir += '/'
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
 
     find_confs = '{ldhelmet} find_confs \
     --num_threads 10 \
