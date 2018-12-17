@@ -8,15 +8,6 @@
 #
 # these are resolved by selecting the
 # alignment that has the highest x-drop score
-#
-# this script will also correct for overlapping
-# alignments by modifying the end1 coordinate -
-# although this doesn't impact the aligned regions,
-# it may mean the other stats (identity, coverage, etc)
-# are not completely accurate in the outfile.
-# I'm sticking with this since we aren't using any of
-# those metrics to filter for this analysis in the first
-# place.
 # 
 # usage Rscript clean_lastz_output.R [infile] [outfile]
 
@@ -44,26 +35,9 @@ colnames(d)[1] <- 'score'
 # remove duplicates
 d %<>% 
     group_by(zstart1) %>%
-    mutate(max_score = max(score)) %>%
-    filter(score == max_score) %>%
-    select(-max_score) %>%
-    mutate(first = min(zstart2)) %>% # identical matches
-    filter(zstart2 == first) %>%
-    select(-first) %>%
+    filter(score == max(score)) %>%
+    filter(zstart2 == min(zstart2) %>%
     ungroup()
-    
-# prevent overlapping alignments
-d %<>%
-    arrange(zstart1) %>%
-    mutate(next_start1 = lead(zstart1)) %>%
-    mutate(in_interval = ifelse(next_start1 < end1, 1, 0)) %>%
-    mutate(end1 = case_when(
-        in_interval == 1 ~ next_start1,
-        in_interval == 0 ~ end1,
-        is.na(in_interval) ~ end1)) %>%
-    mutate(length_chunk = end1 - zstart1) %>%
-    mutate(end2 = zstart2 + length_chunk) %>% # correct minus alignment
-    select(-next_start1, -in_interval, -length_chunk)
 
 # assert no double matches left
 test <- d %>%
