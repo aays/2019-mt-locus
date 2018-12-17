@@ -90,12 +90,13 @@ def run_ldhelmet(alignment_file, ldhelmet_path, directory, outdir):
     cmds = [find_confs, table_gen, pade, rjmcmc, post_to_text]
     print('Starting LDhelmet run for {f}...'.format(f = coordinates))
     for cmd in cmds:
-        print('Running ' + cmd + '...')
         child = subprocess.Popen(cmd, stdout = subprocess.PIPE,
                                  stderr = subprocess.PIPE, shell = True)
         stdout, stderr = child.communicate()
 
     # cleanup
+    print('Done.')
+    print('Outfile written to {outfile}'.format(outfile = outdir + coordinates + '.txt'))
     print('Removing temp files...')
     temp_dir = '{directory}temp/*'.format(directory = directory)
     for fname in glob.glob(temp_dir):
