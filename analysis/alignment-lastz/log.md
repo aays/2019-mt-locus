@@ -1014,6 +1014,13 @@ update - not sure what was going wrong - manually reran the functions in the
 script and everything added up, and upon rerunning the script the correct
 output file was generated. must have made a typo the first time...
 
-onto LDhelmet!
+onto LDhelmet for these files!
+
+however, it's worth keeping in mind that later on, we'll
+be needing to create a single mt-aligned file that follows the mt+
+coordinates as a reference
+
+this file will basically ignore gaps in the mt+ and only keep
+gaps in the mt-, so as to preserve the mt+ coordinates
 
 

@@ -219,10 +219,29 @@ running `ldhelmet_alleles.sh` after editing:
 time bash analysis/recombination-ldhelmet/ldhelmet_alleles.sh
 ```
 
+## 16/12/2018
 
+starting over - we need new scripts that iterate through the contents of
+`data/aligned-fastas/alignments`, and do the following:
 
+`ldhelmet_init.py` - for each file:
+1. create a temp dir for ldhelmet run, and a final dir for outfiles
+2. run five ldhelmet steps on input fasta
+3. delete temp files, preserving only outfile
 
+`ldhelmet_clean.py` - for each outfile:
+1. parse through file
+2. modify coordinates to match actual mt+ positions
+3. rewrite output file with new coordinates to new outfile-only dir
 
+`ldhelmet_combine.R` - for each outfile:
+1. combine all files in new dir into single df
+2. remove all duplicates
+3. write final full-mt outfile
+
+we also need scripts that do this for the mt-separated files:
+1. run LDhelmet on entire masked mt locus
+2. read in values and return mean rho value ignoring the masked regions
 
 
 
