@@ -198,15 +198,15 @@ def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict
                             was_gap = False
 
             outname = outdir + 'chromosome_6_' + str(chr6_start) + '-' + str(chr6_end) + '.fasta'
-            seq_id_plus = 'chromosome_6:' + str(chr6_start) + '-' + str(chr6_end)
-            seq_id_minus = 'mtMinus:' + str(a.start2) + '-' + \
-                str(a.start2 + a.match_size2) + '|orientation=' + str(a.strand2)
+            # seq_id_plus = 'chromosome_6:' + str(chr6_start) + '-' + str(chr6_end)
+            # seq_id_minus = 'mtMinus:' + str(a.start2) + '-' + \
+                # str(a.start2 + a.match_size2) + '|orientation=' + str(a.strand2)
             with open(outname, 'w') as f:
                 for strain in plus_seqs_out.keys():
-                    f.write('>' + seq_id_plus + '\n')
+                    f.write('>' + strain + '\n')
                     f.write(plus_seqs_out[strain] + '\n')
                 for strain in minus_seqs_out.keys():
-                    f.write('>' + seq_id_minus + '\n')
+                    f.write('>' + strain + '\n')
                     f.write(minus_seqs_out[strain] + '\n')
 
 def main():
