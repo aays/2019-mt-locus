@@ -446,3 +446,8 @@ and then:
         b. increment sequence string with gap_size number of Ns
         c. then proceed to next iteration
 
+```bash
+time python3.5 analysis/alignment-lastz/combine_fastas.py \
+--file data/aligned-fastas/mt_aligned_transposed_filtered.txt \
+--outfile data/aligned-fastas/mt_aligned_final.fasta
+```
