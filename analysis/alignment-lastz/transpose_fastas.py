@@ -28,7 +28,6 @@ def args():
 def transpose_fastas(alignment_files, outfile):
     with open(outfile, 'w') as f:
         first_iteration = True
-        print('test')
         for fname in tqdm(alignment_files):
             basename = fname.split('/')[-1].split('.')[0]
             start, end = [int(num) for num 

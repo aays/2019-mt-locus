@@ -418,17 +418,23 @@ time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
 
 time python3.5 analysis/alignment-lastz/transpose_fastas.py \
 --directory data/aligned-fastas/alignments_strains/ \
---outfile transpose_test.txt
+--outfile data/aligned-fastas/mt_aligned_transposed.txt
 ```
 
-`remove_duplicates.R` (does this even need a script?)
+`remove_duplicates.R` 
 1. read in file above as df
 2. dplyr::distinct() to remove duplicates
 3. assert that no position appears twice
 
+```bash
+Rscript analysis/alignment-lastz/remove_duplicates.R \
+data/aligned-fastas/mt_aligned_transposed.txt \
+data/aligned-fastas/mt_aligned_transposed_filtered.txt
+```
+
 and then:
 
-`combine_fastas.py` - this should have no mt+ gaps or duplicates
+`combine_fastas.py` - this input file will have no mt+ gaps or duplicates
 1. open transposed file
 2. create dict with strain names from header
 3. instantiate counter = 298299
