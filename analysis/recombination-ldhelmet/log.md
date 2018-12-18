@@ -270,11 +270,155 @@ first attempt at shell script equivalent:
 time bash analysis/recombination-ldhelmet/ldhelmet_init.sh
 ```
 
+this seems to hang up after 6 or so files.
 
+let's individually run the one it messed up on.
+we'll start by making a script that does the same
+thing, but for only one input file
 
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/alignments/chromosome_6_334439-334705.fasta
+```
 
+just froze on find_confs forever? what the shit?
 
+in the meantime, the other script froze on a short 
+alignment at 320000. although the alignment is ~200 bp,
+the timestamp on the post file indicates LDhelmet just
+stopped writing to the file at some point and sat there,
+suddenly consuming 30 or so jobs on the server
+instead of the 1-2 typical of an rjmcmc with this
+many threads specified.
 
+let's try this alignment individually and see if that makes
+a difference:
 
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet-indiv.sh \
+data/aligned-fastas/alignments/chromosome_6_320453-320614.fasta
+```
 
+if this works, we'll have to create a list of files in the
+alignments directory and then use `split` to stick it into
+chunks of ~3 filenames at a time to then run a modified LDhelmet
+script on using the `while read -r` syntax in bash. although that'd
+suck and mean more work, it also means the task can be parallelized
+somewhat, which should save time in the long run.
+
+update: it froze again. dammit. maybe LDhelmet can't
+handle files that are this short? this one hardly spans
+200 bp, and has only 24 SNPs. 
+
+let's try to find an even shorter alignment and see if
+the same issue repeats itself:
+
+```bash
+# 166 bp
+time bash analysis/recombination-ldhelmet/ldhelmet-indiv.sh \
+data/aligned-fastas/alignments/chromosome_6_374921-375087.fasta
+```
+
+although, looking back at the timestamps of the files from yesterday,
+they got past this file...
+
+```bash
+$ ll
+total 404K
+-rw-r--r-- 1 hasans11 researchers  34K Dec 17 16:12 chromosome_6_298298-310006.txt
+-rw-r--r-- 1 hasans11 researchers  53K Dec 17 16:26 chromosome_6_309976-323648.txt
+-rw-r--r-- 1 hasans11 researchers 120K Dec 17 17:02 chromosome_6_310768-317056.txt
+-rw-r--r-- 1 hasans11 researchers  38K Dec 17 17:19 chromosome_6_319517-320643.txt
+-rw-r--r-- 1 hasans11 researchers 1.5K Dec 17 12:29 chromosome_6_320453-320614.txt
+-rw-r--r-- 1 hasans11 researchers  28K Dec 17 12:41 chromosome_6_323640-330370.txt
+-rw-r--r-- 1 hasans11 researchers  43K Dec 17 12:56 chromosome_6_325814-328093.txt
+-rw-r--r-- 1 hasans11 researchers  70K Dec 17 13:13 chromosome_6_331467-348681.txt
+```
+notice how the 320k file took 17 minutes, but finished eventually.
+
+let's leave this individual file that's currently underway
+running on the server. if it eventually wraps up, 
+we'll find a way to parallelize this as mentioned above,
+since the only real problem is that it's being very slow. 
+
+rjmcmc started at ~17:59
+
+update: it's now 21:00 and it's still not done. something
+is clearly very, very wrong.
+
+on the flip side, let's try an LDhelmet run for a region
+that's at least 10 kb - does this work while the shorter
+files don't? could this have to do with how LDhelmet
+calculates these recombination rates? for context - the 
+example fasta bundled w/ LDhelmet is 25 kb
+
+also changed all max threads back to 10 to prevent
+the server from being overloaded
+
+```bash
+# started at 21:18
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/alignments/chromosome_6_298298-310006.fasta
+```
+
+also, tomorrow, check whether the coordinates in the
+outfiles are including or ignoring gaps! if the gaps
+are being included, we'll have to update the `ldhelmet_clean.py`
+script to test for that
+
+also try running the smaller files with LDhelmet 1.7 instead?
+
+## 18/12/2018
+
+so this was done in ~11 minutes, which tells me
+LDhelmet can't quite handle shorter sequences.
+
+also, it appears the LDhelmet coordinates include
+gaps - these need to be removed in the `ldhelmet_clean.py` script.
+
+...you might have to remake the fastas, using a modified
+`align_mt_fasta.maf` script that basically jumps over gaps
+in the mt+.
+
+an easier method would be to 'transpose' the fastas,
+using the fastas that exist in `alignments` - these could
+be written out like so:
+
+```bash
+position CCXXXX CCXXXX CCXXXX etc
+298299 A A T
+298300 G G G
+```
+
+and so on. this could later be read into R
+for the removal of duplicates, after which we
+could transpose them back out to a single fasta.
+
+so:
+
+`transpose_fastas.py` -
+1. open transposed file to write to
+2. for each fasta in `alignments`:
+    a. for each position in the fasta:
+        a. if mt+ is not '-': write out position and base for strains
+        b. elif mt+ is '-': skip over this site
+
+`remove_duplicates.R` (does this even need a script?)
+1. read in file above as df
+2. dplyr::distinct() to remove duplicates
+3. assert that no position appears twice
+
+and then:
+
+`combine_fastas.py` - this should have no mt+ gaps or duplicates
+1. open transposed file
+2. create dict with strain names from header
+3. instantiate counter = 298299
+3. for line in fasta:
+    a. check that position = counter
+    b. grow sequence string (dict value) for all strains
+    c. if not position = counter # gap happened
+        a. gap_size = position - counter
+        b. increment sequence string with gap_size number of Ns
+        c. then proceed to next iteration
 
