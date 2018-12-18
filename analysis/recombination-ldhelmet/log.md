@@ -403,6 +403,24 @@ so:
         a. if mt+ is not '-': write out position and base for strains
         b. elif mt+ is '-': skip over this site
 
+although to make sure we get the strain names,
+we have to modify `align_mt_fasta_maf.py` to output
+those as fasta ids (instead of just the regions)
+
+```
+mkdir -p data/aligned-fastas/alignments_strains
+time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
+--plus data/aligned-fastas/plus_strains_ref.fasta \
+--minus data/aligned-fastas/minus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-10k-gapped.maf \
+--bed data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--outdir data/aligned-fastas/alignments_strains
+
+time python3.5 analysis/alignment-lastz/transpose_fastas.py \
+--directory data/aligned-fastas/alignments_strains/ \
+--outfile transpose_test.txt
+```
+
 `remove_duplicates.R` (does this even need a script?)
 1. read in file above as df
 2. dplyr::distinct() to remove duplicates
