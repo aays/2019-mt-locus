@@ -451,3 +451,39 @@ time python3.5 analysis/alignment-lastz/combine_fastas.py \
 --file data/aligned-fastas/mt_aligned_transposed_filtered.txt \
 --outfile data/aligned-fastas/mt_aligned_final.fasta
 ```
+
+IT WORKED! thank you sleepy ahmed for the epiphany
+
+ldhelmet time:
+
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/mt_aligned_final.fasta
+```
+
+and now to correct coordinates:
+
+```bash
+mv -v data/recombination-estimates/mt_aligned_final.txt \
+data/recombination-estimates/mt_aligned_raw.txt
+
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_overall_clean.py \
+-f data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw.txt \
+-o data/recombination-ldhelmet/recombination estimates/mt_aligned_final.txt
+```
+
+next, run LDhelmet on the two mt-separated files individually:
+
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/plus_non_gametolog.fasta
+
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/minus_non_gametolog.fasta
+```
+
+
+
+
+
+

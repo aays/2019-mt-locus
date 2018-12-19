@@ -35,10 +35,10 @@ opt <- args()
 
 # load files
 ldhelmet_cols <- c('left_snp', 'right_snp', 'mean', 'p025', 'p50', 'p975')
-ldhelmet_files <- map(list.files(opt$dir, full.names = TRUE),
+ldhelmet_files <- map(list.files(opt$dir, full.names = TRUE, pattern = '*txt'),
                       read_delim, delim = ' ', skip = 3,
                       col_types = cols(), col_names = ldhelmet_cols)
-names(ldhelmet_files) <- list.files(opt$dir)
+names(ldhelmet_files) <- list.files(opt$dir, pattern = '*txt')
 
 # compute per bp recombination rate
 output <- map_dfr(ldhelmet_files, weighted_mean, .id = 'name')
