@@ -568,4 +568,98 @@ regions is flawed somehow, since this region is included in the alignment:
 2   58298 80105       +
 ```
 
+so the higher block penalty did reduce rho:
+
+```R
+> d %>% summarise(rho = sum(weighted), length = sum(length)) %>%
++ mutate(out = rho / length)
+# A tibble: 1 x 3
+       rho length         out
+     <dbl>  <int>       <dbl>
+1 1001.304 321726 0.003112289
+```
+
+and annihilate that problematic region (which shouldn't be there!)
+
+```R
+> d %>% filter(left_snp == 51880)
+# A tibble: 1 x 8
+  left_snp right_snp       mean       p025        p50       p975 length
+     <int>     <int>      <dbl>      <dbl>      <dbl>      <dbl>  <int>
+1    51880     56974 9.2477e-06 6.3515e-07 7.7162e-06 1.9274e-05   5094
+# ... with 1 more variables: weighted <dbl>
+```
+
+but we still need to correct the ldhelmet filtering script to
+remove this region entirely.
+
+testing the function manually gives the expected output:
+
+```python
+>>> current_interval = set(list(range(51880 - 1, 56974)))
+>>> current_interval.issubset(intervals)
+False
+```
+
+somehow just running the script again made the problematic values disappear?
+but the recombination rate in that file is still stupidly high, while the denominator
+for the aligned mt is wrong (spans the whole mt locus and not just gametolog length)
+
+might just have to make one of those `is_gametolog` type files that can later be
+read into an R data frame. 
+
+```bash
+time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
+--mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
+--plus data/recombination-ldhelmet/recombination-estimates/plus_non_gametolog_filtered.txt \
+--alignment data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--fasta data/aligned-fastas/plus_strains_ref.fasta \
+--outfile test_long.txt
+```
+
+so this script worked (and will be useful for plotting) but look:
+
+```R
+> d %>% group_by(is_gametolog) %>% summarise(mean_rho = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog    mean_rho
+         <int>       <dbl>
+1            0 0.011467309
+2            1 0.001986462
+```
+
+that doesn't make sense at all - something's off here
+
+wait - instead of doing these on the masked files, why not run LDhelmet on the full
+unmasked mt-only files and then filtering out parts that are covered by the lastz alignment?
+
+```bash
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/plus_strains_ref.fasta
+
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/minus_strains_ref.fasta
+```
+
+first, we have to update the coordinates with a new script:
+
+```bash
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_full_clean.py \
+--filename data/recombination-ldhelmet/recombination-estimates/plus_strains_ref.txt \
+--allele plus \
+--outfile data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_corrected.txt
+```
+
+and so:
+
+```bash
+time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
+--mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
+--plus data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_corrected.txt \
+--alignment data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--fasta data/aligned-fastas/plus_strains_ref.fasta \
+--outfile test_long_full.txt
+```
+
+
 
