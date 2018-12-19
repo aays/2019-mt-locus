@@ -482,8 +482,90 @@ time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
 data/aligned-fastas/minus_non_gametolog.fasta
 ```
 
+## 19/12/2018
 
+next, we have to filter the mt-separated LDhelmet outfiles
+for gametologous regions. sometimes, LDhelmet will bizarrely return
+a rho value for a giant gametologous region of all Ns.
 
+`ldhelmet_mt_only_clean.py`
+1. takes in filtered bed file and LDhelmet outfile (+fasta)
+2. use sets and range objects to reduce all bed intervals to a list
+3. for each line in LDhelmet outfile
+    if left_snp -> right_snp boundary covers value in bed intervals
+        skip over the line
+    else
+        write line to new filtered outfile
 
+```bash
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_only_clean.py \
+--filename data/recombination-ldhelmet/recombination-estimates/plus_non_gametolog.txt \
+--bed data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--allele plus \
+--fasta data/aligned-fastas/plus_strains_ref.fasta \
+--outfile data/recombination-ldhelmet/recombination-estimates/plus_non_gametolog_filtered.txt
+
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_only_clean.py \
+--filename data/recombination-ldhelmet/recombination-estimates/minus_non_gametolog.txt \
+--bed data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--allele minus \
+--fasta data/aligned-fastas/minus_strains_ref.fasta \
+--outfile data/recombination-ldhelmet/recombination-estimates/minus_non_gametolog_filtered.txt
+```
+
+and now to get mean rho:
+
+```
+Rscript analysis/recombination-ldhelmet/mean_rho.R \
+-d data/recombination-ldhelmet/recombination-estimates/ \
+-o data/recombination-ldhelmet/mean_rho.txt
+```
+
+wait - this increased the recombination estimates for the non-gametolog regions??
+
+it seems a lot of this (at least in the minus) is being driven by a few regions:
+
+```R
+# A tibble: 5,236 x 8
+   left_snp right_snp     mean   p0.025   p0.500   p0.975 length weighted_rho
+      <int>     <int>    <dbl>    <dbl>    <dbl>    <dbl>  <int>        <dbl>
+ 1    51880     56974 2.158200 0.374070 1.962800 5.036900   5094  10993.87080
+ 2   204689    204843 2.947400 0.433570 2.753100 6.272700    154    453.89960
+ 3    51767     51880 2.158200 0.374070 1.962800 5.036900    113    243.87660
+ 4   105936    106081 1.667400 0.395820 1.502500 4.272500    145    241.77300
+ 5    57046     57154 2.158200 0.374070 1.962800 5.036900    108    233.08560
+ 6    51643     51731 2.158200 0.374070 1.962800 5.036900     88    189.92160
+ 7    57459     57535 2.158200 0.374070 1.962800 5.036900     76    164.02320
+ 8    57280     57341 2.158200 0.374070 1.962800 5.036900     61    131.65020
+ 9    57237     57280 2.158200 0.374070 1.962800 5.036900     43     92.80260
+10    27520     31230 0.023593 0.013215 0.022049 0.042326   3710     87.53003
+# ... with 5,226 more rows
+```
+
+what if we use a higher block penalty?
+
+```bash
+cd data/recombination-ldhelmet/recombination-estimates
+mv minus_non_gametolog.txt minus_non_gametolog_init.txt
+
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/minus_non_gametolog.fasta
+```
+
+in the meantime, looks like the python script generating non-gametolog
+regions is flawed somehow, since this region is included in the alignment:
+
+```R
+> library(readr); library(magrittr); library(dplyr, warn.conflicts = FALSE)
+> d <- read_tsv('../alignment-lastz/lastz-align-10k-gapped-filtered.bed', col_types = cols())
+> d %<>% arrange(zstart2)
+> d %<>% select(zstart2, end2, strand2)
+> d %>% filter(zstart2 > 50000, zstart2 < 60000)
+# A tibble: 2 x 3
+  zstart2  end2 strand2
+    <int> <int>   <chr>
+1   52423 56995       +
+2   58298 80105       +
+```
 
 

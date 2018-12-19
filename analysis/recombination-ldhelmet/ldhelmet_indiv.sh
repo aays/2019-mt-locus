@@ -34,7 +34,7 @@ time ./bin/ldhelmet rjmcmc \
 --pade_file data/recombination-ldhelmet/intermediate-files/${base}.pade \
 --num_iter 1000000 \
 --burn_in 100000 \
---block_penalty 50 \
+--block_penalty 100 \
 --output_file data/recombination-ldhelmet/intermediate-files/${base}.post
 
 time ./bin/ldhelmet post_to_text \
