@@ -48,8 +48,8 @@ def write_fasta(infile, outfile, strains):
                 if counter == position:
                     for strain in strains:
                         seqs[strain] += line[strain]
-                        counter += 1
-                        continue
+                    counter += 1
+                    continue
                 elif counter > position:
                     print('what the shit!')
     with open(outfile, 'w') as f:
