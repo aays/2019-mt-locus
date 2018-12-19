@@ -1023,4 +1023,66 @@ coordinates as a reference
 this file will basically ignore gaps in the mt+ and only keep
 gaps in the mt-, so as to preserve the mt+ coordinates
 
+## 18/12/2018
+
+new alignment method (motivation of problem discussed in `recombination-ldhelmet` log)
+
+so:
+
+`transpose_fastas.py` -
+1. open transposed file to write to
+2. for each fasta in `alignments`:
+    a. for each position in the fasta:
+        a. if mt+ is not '-': write out position and base for strains
+        b. elif mt+ is '-': skip over this site
+
+although to make sure we get the strain names,
+we have to modify `align_mt_fasta_maf.py` to output
+those as fasta ids (instead of just the regions)
+
+```
+mkdir -p data/aligned-fastas/alignments_strains
+time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
+--plus data/aligned-fastas/plus_strains_ref.fasta \
+--minus data/aligned-fastas/minus_strains_ref.fasta \
+--alignment data/alignment-lastz/lastz-align-10k-gapped.maf \
+--bed data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--outdir data/aligned-fastas/alignments_strains
+
+time python3.5 analysis/alignment-lastz/transpose_fastas.py \
+--directory data/aligned-fastas/alignments_strains/ \
+--outfile data/aligned-fastas/mt_aligned_transposed.txt
+```
+
+`remove_duplicates.R` 
+1. read in file above as df
+2. dplyr::distinct() to remove duplicates
+3. assert that no position appears twice
+
+```bash
+Rscript analysis/alignment-lastz/remove_duplicates.R \
+data/aligned-fastas/mt_aligned_transposed.txt \
+data/aligned-fastas/mt_aligned_transposed_filtered.txt
+```
+
+and then:
+
+`combine_fastas.py` - this input file will have no mt+ gaps or duplicates
+1. open transposed file
+2. create dict with strain names from header
+3. instantiate counter = 298299
+3. for line in fasta:
+    a. check that position = counter
+    b. grow sequence string (dict value) for all strains
+    c. if not position = counter # gap happened
+        a. gap_size = position - counter
+        b. increment sequence string with gap_size number of Ns
+        c. then proceed to next iteration
+
+```bash
+time python3.5 analysis/alignment-lastz/combine_fastas.py \
+--file data/aligned-fastas/mt_aligned_transposed_filtered.txt \
+--outfile data/aligned-fastas/mt_aligned_final.fasta
+```
+
 
