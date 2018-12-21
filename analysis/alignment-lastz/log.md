@@ -1086,3 +1086,73 @@ time python3.5 analysis/alignment-lastz/combine_fastas.py \
 ```
 
 
+## 20/12/2018
+
+lastz alignment with mt- as the target -
+
+here, we don't necessarily need the gaps - the bed coordinates
+are sufficient to denote regions that are (and aren't) gametologous
+
+after running this, we need to
+1. check whether the 'coverage' of aligned bases across the two mt alleles has changes
+2. if so, then updating scripts that mark non-gametologous regions with both sets
+
+lastz run:
+
+```bash
+time ./bin/lastz data/references/mt_minus.fasta data/references/mt_plus.fasta \
+--output=data/alignment-lastz/lastz-align-10k-gapped-reciprocal.bed \
+--hspthresh=10000 \
+--format=general
+```
+
+filtering:
+
+```R
+library(tidyverse)
+library(magrittr)
+d <- read_tsv('lastz-align-10k-gapped-reciprocal.bed')
+colnames(d)[1] <- 'score'
+d %<>%
+    group_by(zstart1) %>%
+    filter(score == max(score)) %>% 
+    filter(zstart2 == min(zstart2)) %>%
+    ungroup()
+write_tsv(d, 'lastz-align-10k-gapped-reciprocal-filtered.bed')
+```
+
+onto a notebook (`reciprocal_alignment.ipynb`) to check how many bases
+are _actually_ unique and how many are gametologs
+
+other things to figure out - how much overlap is
+there between the reciprocal alignments?
+the reciprocal has less - are these any
+alignments in that that aren't in the main alignment?
+(although LASTZ should by definition circumvent
+the need for reciprocal alignments...)
+
+also check whether the gff coordinates of mt specific genes
+(ie fus, mid) overlap with lastz alignments - this
+shouldn't be the case! 
+
+also - dotplot for alignment? would be kind of cool...
+
+## 21/12/2018
+
+things to do
+- overlap between reciprocal alignments
+- GFF coordinates of fus/mid/etc - do these show up in the alignment? (they shouldn't!)
+- make a dotplot for the plus-target alignment
+    - does this line up with the synteny diagram in de Hoff 2013?
+- figure out what's going wrong in the unique base count notebook
+    - could create filtered versions of lastz files that concatenate overlapping intervals
+
+
+
+
+
+
+
+
+
+

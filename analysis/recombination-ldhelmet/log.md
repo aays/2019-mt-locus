@@ -605,5 +605,132 @@ time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
 --outfile test_long_full.txt
 ```
 
+this sort of remedied the problem - but only sort of 
+
+```R
+> d %>% group_by(is_gametolog) %>% summarise(m = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog           m
+         <int>       <dbl>
+1            0 0.005526570
+2            1 0.001986462
+>
+```
+
+but this different value for `is_gametolog == 0` goes to show that
+removing the masking actually does make a difference. 
+
+it seems this huge jump is being driven by just two regions:
+
+```R
+> d %>% filter(is_gametolog == 0) %>% arrange(-rho) %>% group_by(rho) %>% tally() %>% arrange(-rho)
+# A tibble: 96 x 2
+        rho     n
+      <dbl> <int>
+ 1 0.099478  6753
+ 2 0.077931  2135
+ 3 0.059614   270
+ 4 0.054090    95
+ 5 0.042391     5
+ 6 0.040939     7
+ 7 0.031879    18
+ 8 0.026011    20
+ 9 0.024268    18
+10 0.020789   224
+```
+
+removing these makes a substantial difference -
+
+```R
+> d %>% filter(rho != 0.099478, rho != 0.077931) %>% group_by(is_gametolog) %>%
++ summarise(m = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog           m
+         <int>       <dbl>
+1            0 0.000622426
+2            1 0.001986462
+```
+
+perhaps we should redo *all* of this with a block penalty of 100 and see if that makes a difference.
+although this will also necessitate backing it up somehow?
+
+the sequence itself (for the first large chunk) looks largely uniform and has a low SNP density
+
+```python
+>>> show_aln(535380, 535450)
+CC2936|chromosome_6:298299-826737 TCCAAGCACTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+CC2937|chromosome_6:298299-826737 TCCAAGCACTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+CC3060|chromosome_6:298299-826737 TCCAAGCACTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+CC3064|chromosome_6:298299-826737 TCCAAGCACTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+CC3065|chromosome_6:298299-826737 TCCAAGCACTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+CC3068|chromosome_6:298299-826737 TCCAAGCTCTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+CC3071|chromosome_6:298299-826737 TCCAAGCACTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+CC3076|chromosome_6:298299-826737 TCCAAGCACTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+CC3086|chromosome_6:298299-826737 TCCAAGCTCTGTTGCAGTTCCCTAGCGGGCCGGCCCAGCACTGCTGGATGCCTGTGACATGCGCCACAGC
+```
+
+we'll use a new script called `ldhelmet_indiv_100.sh`:
+
+```bash
+for filename in mt_aligned_final plus_strains_ref minus_strains_ref; do
+    time bash analysis/recombination-ldhelmet/ldhelmet_indiv_100.sh \
+    data/aligned-fastas/${filename}.fasta;
+done
+```
+
+## 20/12/2018
+
+today:
+- check on LDhelmet results from yesterday
+- run LASTZ with the mt- as the target - does this cover the high rho plus parts?
+
+### LDhelmet results
+
+let's correct the coordinates of our plus outfile:
+
+
+```bash
+mv data/recombination-ldhelmet/recombination-estimates/mt_aligned_final_100.txt \
+data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw_100.txt 
+
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_full_clean.py \
+--filename data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_100.txt \
+--allele plus \
+--outfile data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_100_corrected.txt
+
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_overall_clean.py \
+-f data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw.txt \
+-o data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt
+
+time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
+--mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final_100.txt \
+--plus data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_100_corrected.txt \
+--alignment data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--fasta data/aligned-fastas/plus_strains_ref.fasta \
+--outfile test_long_full_100.txt
+```
+
+seems LDhelmet flattened out most of the variation in rho:
+
+```R
+> d %>% group_by(is_gametolog) %>%
++ summarise(weight = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog      weight
+         <int>       <dbl>
+1            0 0.001335540
+2            1 0.001522998
+```
+
+I don't think block = 100 is the way to go after all. 
+
+in `alignment-lastz` we'll now try the mt- target alignment
+
+
+
+
+
+
+
 
 
