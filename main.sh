@@ -3,46 +3,131 @@
 # lastz alignment
 echo "Aligning mt loci with LASTZ..."
 time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
---output=data/alignment-lastz/lastz-align-10k-gapped.maf \
---hspthresh=10000 \
+--output=data/alignment-lastz/lastz-align-50k-gapped.maf \
+--hspthresh=50000 \
 --format=maf
 
 time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
---output=data/alignment-lastz/lastz-align-10k-gapped.bed \
---hspthresh=10000 \
+--output=data/alignment-lastz/lastz-align-50k-gapped.bed \
+--hspthresh=50000 \
 --format=general
 echo "Done."
 
 # clean the bed file
 Rscript analysis/alignment-lastz/clean_lastz_output.R \
--f data/alignment-lastz/lastz-align-10k-gapped.bed \
--o data/alignment-lastz/lastz-align-10k-gapped-filtered.bed
+-f data/alignment-lastz/lastz-align-50k-gapped.bed \
+-o data/alignment-lastz/lastz-align-50k-gapped-filtered.bed
 
 # aligning the fastas
-echo "Creating mt-aligned fasta..."
+echo "Creating alignment files..."
 mkdir -p data/aligned-fastas/alignments
 time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
 --plus data/aligned-fastas/plus_strains_ref.fasta \
 --minus data/aligned-fastas/minus_strains_ref.fasta \
---alignment data/alignment-lastz/lastz-align-10k-gapped.maf \
---bed data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-50k-gapped.maf \
+--bed data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
 --outdir data/aligned-fastas/alignments
 
+echo "Done."
+echo "Transposing alignments..."
+time python3.5 analysis/alignment-lastz/transpose_fastas.py \
+--directory data/aligned-fastas/alignments/ \
+--outfile data/aligned-fastas/mt_aligned_transposed.txt
+
+Rscript analysis/alignment-lastz/remove_duplicates.R \
+data/aligned-fastas/mt_aligned_transposed.txt \
+data/aligned-fastas/mt_aligned_transposed_filtered.txt
+
+echo "Done."
+echo "Creating final mt-aligned file..."
+time python3.5 analysis/alignment-lastz/combine_fastas.py \
+--file data/aligned-fastas/mt_aligned_transposed_filtered.txt \
+--outfile data/aligned-fastas/mt_aligned_final.fasta
+
+echo "mt-aligned file created."
+echo "Clearing intermediate files..."
+rm -v data/alienged-fastas/mt_aligned_transposed*
+
+
+# don't use the files below for rho estimation!
 echo "Creating mt-separated fastas..."
 time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --fasta data/aligned-fastas/plus_strains_ref.fasta \
---alignment data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
 --mt_allele plus \
 --output data/aligned-fastas/plus_non_gametolog.fasta
 
 time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --fasta data/aligned-fastas/minus_strains_ref.fasta \
---alignment data/alignment-lastz/lastz-align-10k-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
 --mt_allele minus \
 --output data/aligned-fastas/minus_non_gametolog.fasta
 
+echo "Done."
+echo "Starting recombination rate estimation."
 
 # recombination rate estimation
 ## gametolog recombination
 echo "LDhelmet runs for aligned fasta..."
-time bash analysis/recombination-ldhelmet/ldhelmet_init.sh
+time bash analysis/recombination_ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/mt_aligned_final.fasta
+
+mv -v data/recombination-estimates/mt_aligned_final.txt \
+data/recombination-estimates/mt_aligned_raw.txt # rename
+
+echo "Correcting coordinates for LDhelmet output..."
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_overall_clean.py \
+-f data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw.txt \
+-o data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt
+
+## non-gametolog recombination
+echo "LDhelmet runs for individual mt loci..."
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/plus_strains_ref.fasta
+
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/minus_strains_ref.fasta
+
+### YOU MIGHT HAVE TO DELETE THIS LATER
+### JUST DOING THESE TO BE SURE
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/plus_non_gametolog.fasta 
+
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
+data/aligned-fastas/minus_non_gametolog.fasta
+
+for allele in plus minus; do
+    for fname in strains_ref non_gametolog; do
+        time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_only_clean.txt \
+        --filename recombination-estimates/${allele}_${fname}.txt \
+        --bed data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
+        --allele ${allele} \
+        --fasta data/aligned-fastas/${allele}_${fname}.fasta \
+        --outfile data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}_filtered.txt ;
+
+        time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_full_clean.py \
+        --filename data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}.txt \
+        --allele ${allele} \
+        --outfile data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}_corrected.txt
+    done ;
+done
+
+echo "Done."
+
+echo "Generating long-form recombination estimates..."
+time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
+--mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
+--plus data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_corrected.txt \
+--alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.txt \
+--fasta data/aligned-fastas/plus_strains_ref.fasta \
+--outfile test_long_ref.txt
+
+# ALSO MAYBE DELETE THIS DEPENDING ON WHETHER IT WORKS
+time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
+--mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
+--plus data/recombination-ldhelmet/recombination-estimates/plus_non_gametolog_corrected.txt \
+--alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.txt \
+--fasta data/aligned-fastas/plus_strains_ref.fasta \
+--outfile test_long_non_gametolog.txt
+
+        

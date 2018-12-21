@@ -1147,6 +1147,157 @@ things to do
 - figure out what's going wrong in the unique base count notebook
     - could create filtered versions of lastz files that concatenate overlapping intervals
 
+### checking mt specific genes
+
+mt+ specific genes include FUS1 and MTA1
+
+mt- specific genes include MIDm and MTD1m
+
+we can check for these in `data/references/final.strict.GFF3` by searching with `less`:
+
+```bash
+131574 chromosome_6    phytozome8_0    gene    480316  484847  .       +       .       ID=Cre06.g252750;Name=Cre06.g2
+131575 chromosome_6    phytozome8_0    mRNA    480316  484847  .       +       .       ID=PAC:26894229;Name=Cre06.g25
+```
+
+let's correct the lastz alignment coordinates in R:
+
+```R
+library(tidyverse); library(magrittr)
+d <- read_tsv('lastz-align-10k-gapped-filtered.bed')
+d %<>%
+    mutate(zstart1 = zstart1 + 298299, # GFFs are 1-based
+           end1 = end1 + 298299,
+           zstart2 = zstart2 + 1,
+           end2 = end2 + 1)
+```
+
+seems we're clear:
+
+```
+> d %>% filter(zstart1 > 470000, end1 < 500000) %>% arrange(zstart1)
+# A tibble: 15 x 13
+    score        name1 strand1 zstart1   end1   name2 strand2 zstart2   end2
+    <int>        <chr>   <chr>   <dbl>  <dbl>   <chr>   <chr>   <dbl>  <dbl>
+ 1  75172 chromosome_6       +  474234 475088 mtMinus       -  124198 125052
+ 2  86664 chromosome_6       +  475343 476591 mtMinus       +  305633 306932
+ 3  13075 chromosome_6       +  477141 477338 mtMinus       -  201014 201219
+ 4  35043 chromosome_6       +  485701 486169 mtMinus       -  212822 213275
+ 5  28192 chromosome_6       +  485718 486169 mtMinus       -  161694 162117
+ 6  50548 chromosome_6       +  489069 489778 mtMinus       +  313533 314289
+ 7  25975 chromosome_6       +  489136 489775 mtMinus       -  229401 230192
+ 8  33732 chromosome_6       +  489179 489792 mtMinus       +  150989 151536
+ 9  11903 chromosome_6       +  489415 489605 mtMinus       +  104620 104812
+10  17813 chromosome_6       +  491434 491659 mtMinus       -  171509 171733
+11 244590 chromosome_6       +  492109 495281 mtMinus       -  174358 177487
+12  34905 chromosome_6       +  495254 495714 mtMinus       -  178222 178675
+13  29553 chromosome_6       +  496259 496704 mtMinus       -  180325 180723
+14  74262 chromosome_6       +  496757 497657 mtMinus       -  182078 182988
+15  32508 chromosome_6       +  497652 498447 mtMinus       -  183795 184325
+```
+
+mta1, mid, mtd:
+
+```bash
+# MTA1
+131808 chromosome_6    phytozome8_0    gene    559654  561075  .       -       .       ID=Cre06.g253000;Name=Cre06.g2
+131809 chromosome_6    phytozome8_0    mRNA    559654  561075  .       -       .       ID=PAC:26893117;Name=Cre06.g25
+
+# MID
+423581 mtMinus feature gene    286502  287123  .       +       .       gene=MIDm;ness_ID=ADF43190.1;ID=ADF43190.1;Nam
+423582 mtMinus feature CDS     286502  286653  .       +       0       ness_ID=ADF43190.1;ID=ADF43190.1.CDS.1;Parent=
+
+# MTD
+423600 mtMinus feature gene    308874  311600  .       -       .       gene=MTD1m;ness_ID=ADF43193.1;ID=ADF43193.1;Na
+423601 mtMinus feature CDS     308874  309104  .       -       0       ness_ID=ADF43193.1;ID=ADF43193.1.CDS.1;Parent=
+```
+
+worth noting in the case of MTA1 that even though the gene is on the rev orientation,
+the GFF coordinates are forward based - and so the same coordinates hold in the lastz
+file, since it locks the target to the fwd orientation and reports the rev comp query
+if necessary
+
+in R:
+
+```R
+# mta1
+> d %>% filter(zstart1 > 559000, zstart1 < 565000)
+# A tibble: 1 x 13
+   score        name1 strand1 zstart1   end1   name2 strand2 zstart2   end2
+   <int>        <chr>   <chr>   <dbl>  <dbl>   <chr>   <chr>   <dbl>  <dbl>
+1 113425 chromosome_6       +  561263 562542 mtMinus       -  287257 288562
+
+# mid
+> d %>% filter(zstart2 > 285000, zstart2 < 290000)
+# A tibble: 3 x 13
+   score        name1 strand1 zstart1   end1   name2 strand2 zstart2   end2
+   <int>        <chr>   <chr>   <dbl>  <dbl>   <chr>   <chr>   <dbl>  <dbl>
+1  50598 chromosome_6       +  447609 448174 mtMinus       +  288002 288574
+2 445456 chromosome_6       +  449521 454907 mtMinus       +  288625 293676
+3 113425 chromosome_6       +  561263 562542 mtMinus       -  287257 288562
+
+# mtd
+> 345555 - c(308874, 311600) # convert coordinates
+[1] 36681 33955
+
+> d %>% filter(zstart2 > 30000, zstart2 < 40000, strand2 == '-')
+# A tibble: 4 x 13
+  score        name1 strand1 zstart1   end1   name2 strand2 zstart2  end2
+  <int>        <chr>   <chr>   <dbl>  <dbl>   <chr>   <chr>   <dbl> <dbl>
+1 51697 chromosome_6       +  458413 459135 mtMinus       -   31250 32024
+2 14199 chromosome_6       +  592791 592974 mtMinus       -   37480 37663
+3 12342 chromosome_6       +  592792 592953 mtMinus       -   39811 39972
+4 15822 chromosome_6       +  662469 662690 mtMinus       -   37460 37685
+```
+
+verdict: none of the mt-specific genes show up in the lastz alignment! (phew)
+
+### alignment dotplot
+
+from the lastz documentation - the R dotplot is a homemade format
+that is engineered to return a dotplot when fed into R's base::plot()
+
+```bash
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-10k-gapped.dotplot \
+--hspthresh=10000 \
+--format=rdotplot
+```
+
+this looks messy - how about higher hsp thresholds?
+
+```bash
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-50k-gapped.dotplot \
+--hspthresh=50000 \
+--format=rdotplot
+
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-100k-gapped.dotplot \
+--hspthresh=100000 \
+--format=rdotplot
+```
+
+okay - these plots make clear just how noisy the 10k alignment is - and how much
+it doesn't actually line up with the geneious alignment! 
+
+I think we should work with a 50k alignment from here on out. I should have checked
+this far sooner - but at least there's an existing codebase to quickly redo these
+analyses with. 
+
+```bash
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-50k-gapped.dotplot \
+--hspthresh=50000 \
+--format=general
+
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-50k-gapped.maf \
+--hspthresh=50000 \
+--format=maf
+```
+
+
 
 
 
