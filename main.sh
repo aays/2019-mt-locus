@@ -1,5 +1,11 @@
 # replicate analyses
 
+# add a log functionality later if possible
+# ie echo 'Starting x' >> log.txt
+{ time sleep 1 ; } 2>> log.txt
+# this will keep track of times too
+# touch log.txt
+
 # lastz alignment
 echo "Aligning mt loci with LASTZ..."
 time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
@@ -18,6 +24,8 @@ Rscript analysis/alignment-lastz/clean_lastz_output.R \
 -f data/alignment-lastz/lastz-align-50k-gapped.bed \
 -o data/alignment-lastz/lastz-align-50k-gapped-filtered.bed
 
+sleep 3
+
 # aligning the fastas
 echo "Creating alignment files..."
 mkdir -p data/aligned-fastas/alignments
@@ -26,7 +34,7 @@ time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
 --minus data/aligned-fastas/minus_strains_ref.fasta \
 --alignment data/alignment-lastz/lastz-align-50k-gapped.maf \
 --bed data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
---outdir data/aligned-fastas/alignments
+--outdir data/aligned-fastas/alignments/
 
 echo "Done."
 echo "Transposing alignments..."
@@ -46,8 +54,9 @@ time python3.5 analysis/alignment-lastz/combine_fastas.py \
 
 echo "mt-aligned file created."
 echo "Clearing intermediate files..."
-rm -v data/alienged-fastas/mt_aligned_transposed*
+rm -v data/aligned-fastas/mt_aligned_transposed*
 
+sleep 3
 
 # don't use the files below for rho estimation!
 echo "Creating mt-separated fastas..."
@@ -63,17 +72,21 @@ time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --mt_allele minus \
 --output data/aligned-fastas/minus_non_gametolog.fasta
 
+sleep 3
+
 echo "Done."
 echo "Starting recombination rate estimation."
 
 # recombination rate estimation
 ## gametolog recombination
 echo "LDhelmet runs for aligned fasta..."
-time bash analysis/recombination_ldhelmet/ldhelmet_indiv.sh \
+time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
 data/aligned-fastas/mt_aligned_final.fasta
 
-mv -v data/recombination-estimates/mt_aligned_final.txt \
-data/recombination-estimates/mt_aligned_raw.txt # rename
+sleep 3
+
+mv -v data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
+data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw.txt # rename
 
 echo "Correcting coordinates for LDhelmet output..."
 time python3.5 analysis/recombination-ldhelmet/ldhelmet_overall_clean.py \
@@ -85,26 +98,34 @@ echo "LDhelmet runs for individual mt loci..."
 time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
 data/aligned-fastas/plus_strains_ref.fasta
 
+sleep 3
+
 time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
 data/aligned-fastas/minus_strains_ref.fasta
+
+sleep 3
 
 ### YOU MIGHT HAVE TO DELETE THIS LATER
 ### JUST DOING THESE TO BE SURE
 time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
 data/aligned-fastas/plus_non_gametolog.fasta 
 
+sleep 3
+
 time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
 data/aligned-fastas/minus_non_gametolog.fasta
 
+sleep 3
+
 for allele in plus minus; do
     for fname in strains_ref non_gametolog; do
-        time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_only_clean.txt \
-        --filename recombination-estimates/${allele}_${fname}.txt \
+        time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_only_clean.py \
+        --filename data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}.txt \
         --bed data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
         --allele ${allele} \
         --fasta data/aligned-fastas/${allele}_${fname}.fasta \
         --outfile data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}_filtered.txt ;
-
+        sleep 1;
         time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_full_clean.py \
         --filename data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}.txt \
         --allele ${allele} \
@@ -118,7 +139,7 @@ echo "Generating long-form recombination estimates..."
 time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
 --mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
 --plus data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_corrected.txt \
---alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.txt \
+--alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
 --fasta data/aligned-fastas/plus_strains_ref.fasta \
 --outfile test_long_ref.txt
 
@@ -126,8 +147,7 @@ time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
 time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
 --mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
 --plus data/recombination-ldhelmet/recombination-estimates/plus_non_gametolog_corrected.txt \
---alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.txt \
+--alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
 --fasta data/aligned-fastas/plus_strains_ref.fasta \
 --outfile test_long_non_gametolog.txt
 
-        

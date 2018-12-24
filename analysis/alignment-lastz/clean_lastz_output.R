@@ -36,7 +36,7 @@ colnames(d)[1] <- 'score'
 d %<>% 
     group_by(zstart1) %>%
     filter(score == max(score)) %>%
-    filter(zstart2 == min(zstart2) %>%
+    filter(zstart2 == min(zstart2)) %>%
     ungroup()
 
 # assert no double matches left
