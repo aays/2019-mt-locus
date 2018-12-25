@@ -1295,7 +1295,78 @@ time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
 --output=data/alignment-lastz/lastz-align-50k-gapped.maf \
 --hspthresh=50000 \
 --format=maf
+
+time bash main.sh
 ```
+
+## 25/12/2018
+
+did I use the wrong VCFs again?...
+
+I've been using the VCFs marked `gGVCFs` and not `HC`, but
+it appears that `HC` is the right one? 
+
+let's try running these things with the other VCFs in the meantime
+at least:
+
+
+```bash
+cd data/references
+ln -sv ../../j_old/analysis/map_MT-specific/MT-specific_VCFs/all_quebec.mtMinus.HC.vcf.gz* .
+ln -sv ../../j_old/analysis/map_MT-specific/MT-specific_VCFs/all_quebec.mtPlus.HC.vcf.gz* .
+
+time ./bin/vcf2fasta.py -v data/references/all_quebec.mtPlus.HC.vcf.gz \
+-r data/references/mtPlus_ref.chromosome_6.fasta \
+-i chromosome_6:298299-826737 \
+-s CC2936 CC2937 CC3060 CC3064 CC3065 CC3068 CC3071 CC3076 CC3086 \
+--min_GQ 30 > data/aligned-fastas/plus_strains_ref_HC.fasta
+
+time ./bin/vcf2fasta.py -v data/references/all_quebec.mtMinus.HC.vcf.gz \
+-r data/references/mtMinus_ref.chromosome_6_and_mtMinus.fasta \
+-i mtMinus:1-345555 \
+-s CC2935 CC2938 CC3059 CC3061 CC3062 CC3063 CC3073 CC3075 CC3079 CC3084 \
+--min_GQ 30 > data/aligned-fastas/minus_strains_ref_HC.fasta
+```
+
+holy moly - look at all this data we were missing in the plus!
+
+```python
+>>> from Bio import SeqIO
+>>> fname = 'data/aligned-fastas/plus_strains_ref_HC.fasta'
+>>> d = [s for s in SeqIO.parse(fname, 'fasta')]
+>>> [len(s) for s in d]
+[528439, 528439, 528439, 528439, 528439, 528439, 528439, 528439, 528439]
+>>> [str(s.seq).count('N') for s in d]
+[28498, 28379, 28852, 29052, 28842, 28493, 28841, 28613, 28038]
+>>> old_fname = 'data/aligned-fastas/plus_strains_ref.fasta'
+>>> d2 = [s for s in SeqIO.parse(old_fname, 'fasta')]
+>>> [str(s.seq).count('N') for s in d2]
+[191768, 187475, 197104, 205915, 203036, 184006, 202624, 195931, 167198]
+```
+
+and in the minus:
+
+```python
+>>> from Bio import SeqIO
+>>> fname = 'data/aligned-fastas/minus_strains_ref_HC.fasta'
+>>> old_fname = 'data/aligned-fastas/minus_strains_ref.fasta'
+>>> s = [s for s in SeqIO.parse(fname, 'fasta')]
+>>> d = [s for s in SeqIO.parse(fname, 'fasta')]
+>>> d2 = [s for s in SeqIO.parse(old_fname, 'fasta')]
+>>> print([len(s) for s in d], [len(s) for s in d2])
+[345555, 345555, 345555, 345555, 345555, 345555, 345555, 345555, 345555, 345555] [345555, 345555, 345555, 345555, 345555, 345555, 345555, 345555, 345555, 345555]
+>>> [str(s.seq).count('N') for s in d]
+[3346, 3225, 3440, 3631, 3292, 3711, 3306, 3426, 3480, 3510]
+>>> [str(s.seq).count('N') for s in d2]
+[36370, 35274, 42615, 41411, 42410, 47596, 40695, 43703, 44428, 46323]
+```
+
+we'll create a modified version of main called `main2.sh` for
+now, incorporating the new filenames and making sure not
+to overwrite old ones - let's see if this makes a difference
+
+
+
 
 
 

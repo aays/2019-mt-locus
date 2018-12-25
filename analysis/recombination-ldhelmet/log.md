@@ -726,11 +726,74 @@ I don't think block = 100 is the way to go after all.
 
 in `alignment-lastz` we'll now try the mt- target alignment
 
+## 24/12/2018
 
+so we've had a bit of an overhaul (see `alignment-lastz` log)
+where we've switched to a different lastz score threshold,
+altering our original alignment dataset. earlier analyses
+could (fortunately) be easily rerun with `main.sh` - once
+this is done, we can use the long format files to precisely
+calculate recombination rates in and out of gametologs. 
 
+there are two versions of this going for unique regions - one 
+where non-gametolog recombination is calculated from the full
+fastas, while the other has recombination calculated from fastas
+where the gametologs are masked. I expect rho to (likely falsely)
+be higher in the second, since in a region with simply less
+data, per base recombination rates will be inflated. 
 
+## 25/12/2018
 
+merry christmas!
 
+it seems we have two regions inflating the crap out of
+the non-gametolog regions.
+
+```R
+d_ref %>%
++ filter(is_gametolog == 0) %>%
++ group_by(rho) %>%
++ tally() %>%
++ arrange(desc(rho))
+# A tibble: 103 x 2
+        rho     n
+      <dbl> <int>
+ 1 0.099478  6753
+ 2 0.077931  2979
+ 3 0.059614   270
+ 4 0.054090    95
+ 5 0.042391     5
+ 6 0.040939     7
+ 7 0.031879    18
+ 8 0.026011    20
+ 9 0.024268    18
+10 0.020789   224
+# ... with 93 more rows
+
+> d_ref %>% filter(rho != 0.099478, rho != 0.077931) %>%
++ group_by(is_gametolog) %>%
++ summarise(mean_rho = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog     mean_rho
+         <int>        <dbl>
+1            0 0.0005454173
+2            1 0.0014719018
+> d_ref %>%
++ group_by(is_gametolog) %>%
++ summarise(mean_rho = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog    mean_rho
+         <int>       <dbl>
+1            0 0.003787625
+2            1 0.001471902
+```
+
+these regions are 535387-542139 and 424836-427814 in
+the mt+ locus - when eyeballing the GFF, there aren't
+any genes in either of these regions.
+
+what does base coverage look like here? back to
+the `alignment-lastz` log
 
 
 
