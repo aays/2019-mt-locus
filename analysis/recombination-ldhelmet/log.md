@@ -795,5 +795,54 @@ any genes in either of these regions.
 what does base coverage look like here? back to
 the `alignment-lastz` log
 
+## 26/12/2018
+
+we've re-redone the recombination calcalation, this time
+actually using the correct VCF:
+
+but the same two regions again:
+
+```R
+> d %>%
++ group_by(is_gametolog) %>%
++ summarise(mean_rho = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog    mean_rho
+         <int>       <dbl>
+1            0 0.008301928
+2            1 0.002693016
+
+> d %>% filter(is_gametolog == 0) %>%
++ group_by(rho) %>% tally() %>% arrange(desc(rho))
+# A tibble: 157 x 2
+        rho     n
+      <dbl> <int>
+ 1 0.292340  6753
+ 2 0.117260   169
+ 3 0.090423    37
+ 4 0.081629     3
+ 5 0.049919  3298
+ 6 0.029169   614
+ 7 0.027580    35
+ 8 0.027531     7
+ 9 0.027299   267
+10 0.026506     4
+# ... with 147 more rows
+
+> d %>% filter(rho != 0.292340, rho != 0.049919) %>%
++ group_by(is_gametolog) %>%
++ summarise(mean_rho = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog     mean_rho
+         <int>        <dbl>
+1            0 0.0006071983
+2            1 0.0026930156
+```
+
+what the hell is going on in these regions? back
+to the `alignment-lastz` log
+
+
+
 
 

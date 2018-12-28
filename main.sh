@@ -2,7 +2,7 @@
 
 # add a log functionality later if possible
 # ie echo 'Starting x' >> log.txt
-{ time sleep 1 ; } 2>> log.txt
+# { time sleep 1 ; } 2>> log.txt
 # this will keep track of times too
 # touch log.txt
 
@@ -105,32 +105,11 @@ data/aligned-fastas/minus_strains_ref.fasta
 
 sleep 3
 
-### YOU MIGHT HAVE TO DELETE THIS LATER
-### JUST DOING THESE TO BE SURE
-time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
-data/aligned-fastas/plus_non_gametolog.fasta 
-
-sleep 3
-
-time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
-data/aligned-fastas/minus_non_gametolog.fasta
-
-sleep 3
-
 for allele in plus minus; do
-    for fname in strains_ref non_gametolog; do
-        time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_only_clean.py \
-        --filename data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}.txt \
-        --bed data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
-        --allele ${allele} \
-        --fasta data/aligned-fastas/${allele}_${fname}.fasta \
-        --outfile data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}_filtered.txt ;
-        sleep 1;
-        time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_full_clean.py \
-        --filename data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}.txt \
-        --allele ${allele} \
-        --outfile data/recombination-ldhelmet/recombination-estimates/${allele}_${fname}_corrected.txt
-    done ;
+    time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_full_clean.py \
+    --filename data/recombination-ldhelmet/recombination-estimates/${allele}_strains_ref.txt \
+    --allele ${allele} \
+    --outfile data/recombination-ldhelmet/recombination-estimates/${allele}_strains_ref_corrected.txt
 done
 
 echo "Done."
@@ -142,12 +121,4 @@ time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
 --alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
 --fasta data/aligned-fastas/plus_strains_ref.fasta \
 --outfile test_long_ref.txt
-
-# ALSO MAYBE DELETE THIS DEPENDING ON WHETHER IT WORKS
-time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
---mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
---plus data/recombination-ldhelmet/recombination-estimates/plus_non_gametolog_corrected.txt \
---alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
---fasta data/aligned-fastas/plus_strains_ref.fasta \
---outfile test_long_non_gametolog.txt
 

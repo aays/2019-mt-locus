@@ -1287,7 +1287,7 @@ analyses with.
 
 ```bash
 time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
---output=data/alignment-lastz/lastz-align-50k-gapped.dotplot \
+--output=data/alignment-lastz/lastz-align-50k-gapped.bed \
 --hspthresh=50000 \
 --format=general
 
@@ -1365,13 +1365,184 @@ we'll create a modified version of main called `main2.sh` for
 now, incorporating the new filenames and making sure not
 to overwrite old ones - let's see if this makes a difference
 
+## 26/12/2018
 
+it didn't - the rho values are still being skewed.
 
+we should get the DP values across the mt locus and see
+what these look like. here's a quick script to do just that:
 
+```python
+import vcf
+import sys
+from tqdm import tqdm
 
+fname = sys.argv[-2]
+outname = sys.argv[-1]
 
+with open(outname, 'w') as f:
+    first_iteration = True
+    records = vcf.Reader(filename = fname, compressed = True)
+    region = records.fetch('chromosome_6', 298000, 830000) # mt plus
+    for record in tqdm(region):
+        if first_iteration:
+            sample_names = [c.sample for c in record.samples]
+            f.write('POS ' + ' '.join(sample_names) + '\n')
+            col_count = len(sample_names)
+            first_iteration = False
+        try:
+            depth_vals = [sample['DP'] for sample in record.samples]
+        except AttributeError:
+            continue
+        for i, val in enumerate(depth_vals):
+            if isinstance(val, int):
+                depth_vals[i] = str(depth_vals[i])
+            elif val is None:
+                depth_vals[i] = 'NA'
+        assert len(depth_vals) == col_count
+        position = str(record.POS)
+        f.write(position + ' '  + ' '.join(depth_vals) + '\n')
+```            
 
+```bash
+time python3.5 depth_check.py \
+data/references/all_quebec.mtPlus.HC.vcf.gz \
+depth_test.txt
 
+time python3.5 depth_check.py \
+data/references/all_quebec.mtPlus.gGVCFs.vcf.gz \
+depth_test_gvcf.txt
+```
+
+let's try redoing everything _again_, but this time applying
+a min DP of 30. this is a reasonably high filter but
+let's see if that does away with the weirdness we're seeing.
+onto `main3.sh`...
+
+update - same culprits - nothing's changed.
+
+wait a second - de Hoff mentioned autosomal translocations
+in the mt+ hap, and the depth for that region seems
+much higher than surrounding (plotted in RStudio locally) -
+what do we get from a lastz dotplot between that chromosome
+and the mt+?
+
+the de Hoff paper says it was chromosome 16 - and so:
+
+```bash
+time ./bin/lastz data/references/mt_plus.fasta \
+../genomewide_recombination/data/fastas/reference/chromosome_16.fasta \
+--output=autosomal_test.dotplot \
+--hspthresh=10000 \
+--format=rdotplot
+
+time ./bin/lastz data/references/mt_plus.fasta \
+../genomewide_recombination/data/fastas/reference/chromosome_16.fasta \
+--output=autosomal_test.bed \
+--hspthresh=10000 \
+--format=general
+
+# maf - high thresh
+time ./bin/lastz data/references/mt_plus.fasta \
+../genomewide_recombination/data/fastas/reference/chromosome_16.fasta \
+--output=autosomal_test.maf \
+--hspthresh=100000 \
+--format=maf
+
+```
+
+see also fig. 2 in de hoff
+
+overall - it might seem autosomal translocations might help
+explain the huge variance in sequencing depth, thus potentially
+affecting our results - but the two primary regions
+that seemed to have high recombination (535k and 424k) seem to be
+just upstream of the actual translocation regions (something
+my own lastz alignment above confirms). what could be
+going on here?...
+
+## 27/12/2018
+
+another thing to consider - variance in SNP density
+
+if SNP density is higher in these regions, we'll likely see higher recombination
+rate estimates
+
+we can calculate SNP density in windows with a quick python script:
+
+```python
+import vcf
+import sys
+from tqdm import tqdm
+
+fname = sys.argv[-3]
+outname = sys.argv[-2]
+windowsize = sys.argv[-1]
+
+with open(outname, 'w') as f:
+    first_iteration = True
+    for segment in tqdm(range(298000, 830000, windowsize)):
+        if first_iteration:
+            f.write('start end snp_count\n')
+            first_iteration = False
+
+        start = segment
+        end = segment + windowsize
+
+        v = vcf.Reader(filename = fname, compressed = True)
+        region = v.fetch('chromosome_6', start, end)
+
+        snps = len([record.is_snp for record in region])
+        f.write(' '.join([start, end, snps] + '\n')
+
+```
+
+followed by
+
+```bash
+cd autosomal_test
+time python3.5 snp_density.py \
+../data/references/all_quebec.mtPlus.HC.vcf.gz \
+snp_density_out.txt \
+2000
+```
+
+this doesn't seem to be the biggest predictor:
+
+```R
+> d %>% arrange(desc(snp_count)) %>% head(20)
+# A tibble: 20 x 3
+    start    end snp_count
+    <int>  <int>     <int>
+ 1 662000 664000       276
+ 2 320000 322000       275
+ 3 328000 330000       239
+ 4 338000 340000       233
+ 5 332000 334000       218
+ 6 540000 542000       213
+ 7 814000 816000       212
+ 8 560000 562000       209
+ 9 306000 308000       199
+10 322000 324000       199
+11 536000 538000       198
+12 312000 314000       194
+13 360000 362000       192
+14 596000 598000       191
+15 348000 350000       189
+16 358000 360000       187
+17 334000 336000       185
+18 354000 356000       184
+19 346000 348000       183
+20 574000 576000       182
+```
+
+at a 10kb windowsize, that region definitely seems to have really high SNP density -
+but so does the region from 298k to 400k (ie the T domain iirc - which I would
+expect to have somewhat higher SNP density)
+
+one might hope that the region in the T domain has higher density due to recombination
+while the nongametologous region is larger due to the translocation - but is there
+any way to really be sure? 
 
 
 
