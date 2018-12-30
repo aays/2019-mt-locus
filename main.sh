@@ -9,20 +9,20 @@
 # lastz alignment
 echo "Aligning mt loci with LASTZ..."
 time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
---output=data/alignment-lastz/lastz-align-50k-gapped.maf \
---hspthresh=50000 \
+--output=data/alignment-lastz/lastz-align-30k-gapped.maf \
+--hspthresh=30000 \
 --format=maf
 
 time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
---output=data/alignment-lastz/lastz-align-50k-gapped.bed \
---hspthresh=50000 \
+--output=data/alignment-lastz/lastz-align-30k-gapped.bed \
+--hspthresh=30000 \
 --format=general
 echo "Done."
 
 # clean the bed file
 Rscript analysis/alignment-lastz/clean_lastz_output.R \
--f data/alignment-lastz/lastz-align-50k-gapped.bed \
--o data/alignment-lastz/lastz-align-50k-gapped-filtered.bed
+-f data/alignment-lastz/lastz-align-30k-gapped.bed \
+-o data/alignment-lastz/lastz-align-30k-gapped-filtered.bed
 
 sleep 3
 
@@ -32,8 +32,8 @@ mkdir -p data/aligned-fastas/alignments
 time python3.5 analysis/alignment-lastz/align_mt_fasta_maf.py \
 --plus data/aligned-fastas/plus_strains_ref.fasta \
 --minus data/aligned-fastas/minus_strains_ref.fasta \
---alignment data/alignment-lastz/lastz-align-50k-gapped.maf \
---bed data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-30k-gapped.maf \
+--bed data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
 --outdir data/aligned-fastas/alignments/
 
 echo "Done."
@@ -62,13 +62,13 @@ sleep 3
 echo "Creating mt-separated fastas..."
 time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --fasta data/aligned-fastas/plus_strains_ref.fasta \
---alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
 --mt_allele plus \
 --output data/aligned-fastas/plus_non_gametolog.fasta
 
 time python3.5 analysis/alignment-lastz/make_mt_only.py \
 --fasta data/aligned-fastas/minus_strains_ref.fasta \
---alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
 --mt_allele minus \
 --output data/aligned-fastas/minus_non_gametolog.fasta
 
@@ -89,7 +89,7 @@ mv -v data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
 data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw.txt # rename
 
 echo "Correcting coordinates for LDhelmet output..."
-time python3.5 analysis/recombination-ldhelmet/ldhelmet_overall_clean.py \
+time python3.5 analysis/recombination-ldhelmet/ldhelmet_aligned_clean.py \
 -f data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw.txt \
 -o data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt
 
@@ -106,9 +106,11 @@ data/aligned-fastas/minus_strains_ref.fasta
 sleep 3
 
 for allele in plus minus; do
-    time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_full_clean.py \
+    time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_only_clean.py \
     --filename data/recombination-ldhelmet/recombination-estimates/${allele}_strains_ref.txt \
+    --bed data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
     --allele ${allele} \
+    --fasta data/aligned-fastas/${allele}_strains_ref.fasta \
     --outfile data/recombination-ldhelmet/recombination-estimates/${allele}_strains_ref_corrected.txt
 done
 
@@ -118,7 +120,7 @@ echo "Generating long-form recombination estimates..."
 time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
 --mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
 --plus data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_corrected.txt \
---alignment data/alignment-lastz/lastz-align-50k-gapped-filtered.bed \
+--alignment data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
 --fasta data/aligned-fastas/plus_strains_ref.fasta \
---outfile test_long_ref.txt
+--outfile data/recombination-ldhelmet/recombination-estimates/mt_full_long.txt
 

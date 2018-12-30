@@ -1545,6 +1545,63 @@ while the nongametologous region is larger due to the translocation - but is the
 any way to really be sure? 
 
 
+## 28/12/2018
+
+why don't we see the C domain in the lastz alignment?
+
+de Hoff claims that the C domain encompasses 116 kb of sequence at the end of the mt+ locus,
+and is syntenic with the mt- locus, but we don't see alignments there.
+
+what if we aligned the final 150 kb of each locus vs one another?
+
+```python
+from Bio import SeqIO
+plus = SeqIO.read('data/references/mt_plus.fasta', 'fasta')
+minus = SeqIO.read('data/references/mt_minus.fasta', 'fasta')
+plus_final_150 = plus[len(plus) - 150000:]
+minus_final_150 = minus[len(minus) - 150000:]
+with open('plus_final_150.fasta', 'w') as f:
+    SeqIO.write(plus_final_150, f, 'fasta')
+with open('minus_final_150.fasta, 'w') as f:
+    SeqIO.write(minus_final_150, f, 'fasta')
+```
+
+```bash
+mkdir c-domain
+mv -v *150.fasta c-domain/
+./bin/lastz c-domain/plus_final_150.fasta c-domain/minus_final_150.fasta \
+--output=c-domain/alignment_10k.bed \
+--hspthresh=10000 \
+--format=general
+```
+
+after playing around, it seems a 30k score does it right.
+
+the key alignment is at the end here:
+
+
+```bash
+ 15 1389659 chromosome_6    +       150000  104633  119541  mtMinus +       150000  130541  145437  14658/14827
+ 16 204537  chromosome_6    +       150000  140345  142902  mtMinus +       150000  119072  121435  2264/2346
+ 17 165936  chromosome_6    +       150000  141121  142911  mtMinus +       150000  0       1789    1751/1784
+ 18 399343  chromosome_6    +       150000  145338  150000  mtMinus +       150000  145381  150000  4404/4553
+```
+
+do we... do have to do the entire mt locus alignment again...
+
+```bash
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-30k-gapped.dotplot \
+--hspthresh=30000 \
+--format=rdotplot
+
+time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
+--output=data/alignment-lastz/lastz-align-30k-gapped.bed \
+--hspthresh=30000 \
+--format=general
+
+time bash main.sh
+```
 
 
 
