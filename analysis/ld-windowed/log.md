@@ -33,18 +33,39 @@ time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
 --offset 298298 # mt plus coordinate
 ```
 
-`indiv-zns.py`
+## 31/12/2018
+
+`r2_calc.py`
 - inputs - infile, outfile, windowsize
-- open windowed zns file
+- open windowed LD outfile
     - open transposed file w/ csv reader ('ref')
     - for line in transposed ref file:
         - open transposed file *again* w/ csv reader ('target')
         - if ref_snp[is_snp] == 1:
             - for line in transposed target file:
                 - if target_snp.position - ref_snp.position is within windowsize:
-                    - ld = get_ld(ref_snp, target_snp)
+                    - ld = r2calc(ref_snp, target_snp)
                     - outfile.write(ref_snp.pos, target_snp.pos, ld)
                 
-            
+```bash
+python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--windowsize 10000 \
+--outfile data/ld-windowed/mt_aligned_r2.txt
+```
+
+to do tomorrow - maybe a modification of the
+fasta transposition script that *only* returns
+usable SNP sites? could speed up the r2 script, since it's
+rather slow...
+
+also, when showing ZnS in a plot - Kelly's paper (1997)
+plots each successive point as 'one more SNP away from
+a focal site' (Fig 4). but how does Flowers plot ZnS?...
+
+## 31/12/2018
+
+
+
 
 

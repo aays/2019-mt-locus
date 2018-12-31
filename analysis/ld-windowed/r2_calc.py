@@ -159,15 +159,19 @@ def ld_calc(infile, outfile, windowsize):
 
         with open(infile, 'r') as f_in:
             ref_reader = csv.DictReader(f_in, delimiter = ' ')
-
+            outside_range = False
             for record1 in tqdm(ref_reader):
                 if record1['is_snp'] == '0':
                     continue
+                if outside_range:
+                    outside_range = False # reset
+                    continue # next record1
                 for record2 in target_reader:
                     usable = usable_pair(record1, record2)
                     distance = int(record1['position']) - int(record2['position'])
                     if distance > windowsize:
-                        break
+                        outside_range = True
+                        continue
                     elif usable:
                         ld_out = r2calc(record1, record2)
                         out_list = [record1['position'],

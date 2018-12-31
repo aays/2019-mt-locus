@@ -1603,6 +1603,101 @@ time ./bin/lastz data/references/mt_plus.fasta data/references/mt_minus.fasta \
 time bash main.sh
 ```
 
+## 31/12/2018
 
+given the DP investigations I did locally, let's try filtering
+sites that are over 3x the mean DP to get rid of any
+potential paralogous regions that have mapped to the mt.
 
+vcf2fasta doesn't have a flag for this, but we
+can filter using a quick python script. this script
+should
 
+1. calculate mean DP across the mt locus
+2. iterate through the VCF again and write records where DP < 3 * mean
+
+after that, we can use vcf2fasta to filter, and get
+a variant of `main.sh` running again.
+
+```python
+import vcf
+import sys
+
+allele = sys.argv[-4]
+fname = sys.argv[-3]
+outname = sys.argv[-2]
+depth_multiplier = sys.argv[-1]
+
+if allele == 'plus':
+    chrom = 'chromosome_6'
+    start = 298299
+    end = 826737
+elif allele == 'minus':
+    chrom = 'mtMinus'
+    start = 1
+    end = 345555
+
+# get mean DP
+dp_vals = []
+vcfin = vcf.Reader(filename = fname, compressed = True)
+dp_vals = [record.INFO['DP'] for record
+           in vcfin.fetch(chrom, start, end)]
+mean_dp = sum(dp_vals) / len(dp_vals)
+
+dp_threshold = mean_dp * depth_multiplier
+
+# write new VCF
+written = 0
+counter = 0
+with open(outfile, 'w') as f:
+    vcfin = vcf.Reader(filename = fname, compressed = True)
+    writer = vcf.Writer(f, vcfin)
+    for record in vcfin.fetch(chrom, start, end):
+        counter += 1
+        if record.INFO['DP'] < dp_threshold:
+            written += 1
+            writer.write_record(record)
+    
+print('Completed filtering.')
+print('Records below', dp_threshold, 'were removed.')
+print(counter, 'records iterated over.')
+print(written, 'records passed filtering.')
+```
+    
+```bash
+python3.5 analysis/alignment-lastz/filter_max_dp.py \
+plus data/references/all_quebec.mtPlus.HC.vcf.gz \
+data/references/all_quebec.mtPlus.HC.DP3x.vcf.gz 3
+```
+
+so the mean DP is driven too far upward already - this
+needs to be done on a strain-by-strain basis.
+
+```bash
+# new and improved!
+time python3.5 analysis/alignment-lastz/filter_max_dp.py \
+--filename data/references/all_quebec.mtPlus.HC.vcf.gz \
+--outfile data/references/all_quebec.mtPlus.HC.DP2x.vcf \
+--allele plus \
+--dp_multiplier 2
+
+time python3.5 analysis/alignment-lastz/filter_max_dp.py \
+--filename data/references/all_quebec.mtMinus.HC.vcf.gz \
+--outfile data/references/all_quebec.mtMinus.HC.DP2x.vcf \
+--allele minus \
+--dp_multiplier 2
+```
+
+```bash
+bgzip data/references/all_quebec.mtPlus.HC.DP2x.vcf
+bgzip data/references/all_quebec.mtMinus.HC.DP2x.vcf
+tabix -p vcf data/references/all_quebec.mtPlus.HC.DP2x.vcf.gz
+tabix -p vcf data/references/all_quebec.mtMinus.HC.DP2x.vcf.gz
+```
+
+and now we'll have another stab at a version of `main.sh`,
+which also creates new fastas:
+
+```bash
+time bash main_dp.sh
+```
