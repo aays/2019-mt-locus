@@ -44,10 +44,11 @@ def get_freqs(record1, record2):
 
     this behaviour is checked for in usable_pair()
     '''
+    non_strain = ['is_snp', 'position']
     record1_strains = [key for key in list(record1.keys()) 
-                       if key != 'position' and record1[key] != 'N']
+                       if key not in non_strain and record1[key] != 'N']
     record2_strains = [key for key in list(record1.keys()) 
-                       if key != 'position' and record2[key] != 'N']
+                       if key not in non_strain and record2[key] != 'N']
     usable_strains = set(record1_strains).intersection(set(record2_strains))
 
     try:
@@ -124,7 +125,7 @@ def r2calc(record1, record2):
                    freqs['q1'] * freqs['q2'])
     return round(r2, 5)
 
-def usable_pair(record1, record2):
+def usable_pair(record1, record2, windowsize):
     '''
     checks whether the two records are usable
     for an LD calculation
@@ -134,10 +135,15 @@ def usable_pair(record1, record2):
         return False
 
     # 'backwards' calculation/same SNP?
-    record1['position'] = int(record1['position'])
-    record2['position'] = int(record2['position'])
-    if record1['position'] >= record2['position']:
+    first = int(record1['position'])
+    second = int(record2['position'])
+    if first >= second:
         return False
+
+    # outside windowsize
+    distance = second - first
+    if distance > windowsize:
+        return 'out of range'
 
     elif not get_freqs(record1, record2): # see get_freqs description
         return False
@@ -159,20 +165,14 @@ def ld_calc(infile, outfile, windowsize):
 
         with open(infile, 'r') as f_in:
             ref_reader = csv.DictReader(f_in, delimiter = ' ')
-            outside_range = False
             for record1 in tqdm(ref_reader):
                 if record1['is_snp'] == '0':
                     continue
-                if outside_range:
-                    outside_range = False # reset
-                    continue # next record1
                 for record2 in target_reader:
-                    usable = usable_pair(record1, record2)
-                    distance = int(record1['position']) - int(record2['position'])
-                    if distance > windowsize:
-                        outside_range = True
-                        continue
-                    elif usable:
+                    usable = usable_pair(record1, record2, windowsize)
+                    if usable == 'out of range':
+                        break
+                    elif usable is True:
                         ld_out = r2calc(record1, record2)
                         out_list = [record1['position'],
                                     record2['position'],
@@ -180,7 +180,7 @@ def ld_calc(infile, outfile, windowsize):
                         out = ' '.join([str(i) for i
                                         in out_list])
                         f_out.write(out + '\n')
-                    else:
+                    elif not usable:
                         continue
 
 def main():
