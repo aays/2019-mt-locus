@@ -144,12 +144,23 @@ def usable_pair(record1, record2, windowsize):
     distance = second - first
     if distance > windowsize:
         return 'out of range'
-
     elif not get_freqs(record1, record2): # see get_freqs description
         return False
-    
-    else:
-        return True
+
+    # is it only a 'SNP' due to a mismatch in the alignment?
+    # see ld-windowed log for details
+    plus_strains = ['CC2936', 'CC2937', 'CC3060', 'CC3064',
+                    'CC3065', 'CC3068', 'CC3071', 'CC3076', 'CC3086']
+    minus_strains = ['CC2935', 'CC2938', 'CC3059', 'CC3061',
+                     'CC3062', 'CC3063', 'CC3073', 'CC3075',
+                     'CC3079', 'CC3084']
+    for record in [record1, record2]:
+        plus_variants = list(set([record[key] for key in plus_strains]))
+        minus_variants = list(set([record[key] for key in minus_strains]))
+        if len(plus_variants) == 1 and len(minus_variants) == 1:
+            return False
+
+    return True
 
 def ld_calc(infile, outfile, windowsize):
     '''(str, str, int) -> None

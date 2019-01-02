@@ -63,9 +63,48 @@ also, when showing ZnS in a plot - Kelly's paper (1997)
 plots each successive point as 'one more SNP away from
 a focal site' (Fig 4). but how does Flowers plot ZnS?...
 
-## 31/12/2018
+## 1/1/2019
 
+took 11 hours - and it seems everything is in complete LD - this
+script is bonked and needs work
 
+fixed some bugs - attempt 2:
+
+```bash
+time python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--windowsize 25000 \
+--outfile data/ld-windowed/mt_aligned_r2_25k.txt
+```
+
+another issue:
+if there are mismatches in the alignment, such that
+the long form file looks like this:
+
+```
+position S1 S2 S3 S4
+50 A A T T
+51 C C T T
+52 G G A A
+```
+
+and so on, these will always be in full LD with
+one another, because they are simply mismatches between
+the alignment. the r2 script needs to be
+rewritten to ignore these.
+
+```bash
+time python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--windowsize 25000 \
+--outfile data/ld-windowed/mt_aligned_r2_20k.txt
+```
+
+## 2/1/2019
+
+took nearly 10 hours but seems to have worked like a charm!
+
+next up - need to write a script that calculates ZnS in non-overlapping windows
 
 
 
