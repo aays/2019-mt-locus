@@ -96,7 +96,7 @@ rewritten to ignore these.
 ```bash
 time python3.5 analysis/ld-windowed/r2_calc.py \
 --filename data/ld-windowed/mt_aligned_long.txt \
---windowsize 25000 \
+--windowsize 20000 \
 --outfile data/ld-windowed/mt_aligned_r2_20k.txt
 ```
 
@@ -107,4 +107,36 @@ took nearly 10 hours but seems to have worked like a charm!
 next up - need to write a script that calculates ZnS in non-overlapping windows
 
 
+## 3/1/2019
+
+the more I think about it, those pairs we were ignoring
+should still be included. given
+
+```
+A A A T T T
+C C C G G G
+```
+
+a signature of recombination would be something like
+
+```
+A T A T A T
+C C C G G G
+```
+
+and so the first case still counts as usable data,
+seeing as it indicates a lack of recombination.
+
+`usable_pair` in the script should therefore
+auto-return LD = 1 instead of claiming that the pair
+is non-usable.
+
+```bash
+time python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/mt_aligned_r2_1k.txt
+```
+
+took 4.65 hours
 

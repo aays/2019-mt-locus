@@ -158,7 +158,7 @@ def usable_pair(record1, record2, windowsize):
         plus_variants = list(set([record[key] for key in plus_strains]))
         minus_variants = list(set([record[key] for key in minus_strains]))
         if len(plus_variants) == 1 and len(minus_variants) == 1:
-            return False
+            return '1' # r2 = 1.0 by default
 
     return True
 
@@ -183,6 +183,14 @@ def ld_calc(infile, outfile, windowsize):
                     usable = usable_pair(record1, record2, windowsize)
                     if usable == 'out of range':
                         break
+                    elif usable == '1':
+                        ld_out = 1.0
+                        out_list = [record1['position'],
+                                    record2['position'],
+                                    ld_out]
+                        out = ' '.join([str(i) for i
+                                        in out_list])
+                        f_out.write(out + '\n')
                     elif usable is True:
                         ld_out = r2calc(record1, record2)
                         out_list = [record1['position'],
