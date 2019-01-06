@@ -22,6 +22,10 @@ def args():
     return args.filename, args.windowsize, args.outfile
 
 def get_file_stats(filename, windowsize):
+    '''(str, int) -> int, int, int
+    iterates through infile to determine windows
+    for windowed zns calculation
+    '''
     line_count = 0
     with open(filename, 'r') as f:
         for line in f:
@@ -41,6 +45,9 @@ def get_file_stats(filename, windowsize):
     return start, end, line_count
 
 def windowed_zns(filename, windowsize, outfile):
+    '''(str, int, str) -> None
+    calculates zns in windows given input file from r2_calc.
+    '''
     with open(outfile, 'w') as f_out:
         start, end, line_count = get_file_stats(filename, windowsize)
         f_out.write('start end zns site_count\n')
@@ -83,14 +90,10 @@ def windowed_zns(filename, windowsize, outfile):
 
                 continue
                         
-
-
 def main():
     filename, windowsize, outfile = args()
     windowed_zns(filename, windowsize, outfile)
 
 if __name__ == '__main__':
     main()
-
-        
 
