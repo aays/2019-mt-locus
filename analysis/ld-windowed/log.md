@@ -140,3 +140,15 @@ time python3.5 analysis/ld-windowed/r2_calc.py \
 
 took 4.65 hours
 
+## 6/1/2019
+
+alright - now for a script that calculates ZnS for a given windowsize,
+given the output of `r2_calc.py`.
+
+```bash
+# test on smaller file
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/mt_aligned_long_500.txt \
+--windowsize 1000 \
+--outfile test_ld.txt
+```
