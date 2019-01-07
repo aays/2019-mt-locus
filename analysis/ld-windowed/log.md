@@ -147,8 +147,52 @@ given the output of `r2_calc.py`.
 
 ```bash
 # test on smaller file
+head -n 2001 data/ld-windowed/mt_aligned_r2_1k.txt > data/ld-windowed/mt_aligned_long_2000.txt
+
 time python3.5 analysis/ld-windowed/zns_calc.py \
---filename data/ld-windowed/mt_aligned_long_500.txt \
---windowsize 1000 \
+--filename data/ld-windowed/mt_aligned_long_2000.txt \
+--windowsize 200 \
 --outfile test_ld.txt
 ```
+
+main command:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/mt_aligned_r2_1k.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/mt_aligned_zns_1k.txt
+```
+
+wait - there's a serious bug in the r2 file:
+
+```python
+for record in [record1, record2]:
+    plus_variants = list(set([record[key] for key in plus_strains]))
+    minus_variants = list(set([record[key] for key in minus_strains]))
+    if len(plus_variants) == 1 and len(minus_variants) == 1:
+        return '1' # r2 = 1.0 by default
+```
+
+this means that even if just the first record's variation is
+owing to a mismatch, LD between _both_ SNPs is automatically reported as 1.
+
+running this again post-fix:
+
+```bash
+time python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/mt_aligned_r2_1k_fix.txt
+```
+
+now took 5.5 hours - and now for the zns script:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/mt_aligned_r2_1k.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/mt_aligned_zns_1k_fixed.txt
+```
+
+took 7.5 hours! 

@@ -154,11 +154,16 @@ def usable_pair(record1, record2, windowsize):
     minus_strains = ['CC2935', 'CC2938', 'CC3059', 'CC3061',
                      'CC3062', 'CC3063', 'CC3073', 'CC3075',
                      'CC3079', 'CC3084']
+
+    # a very ugly method...
+    mismatch_dict = {}
     for record in [record1, record2]:
         plus_variants = list(set([record[key] for key in plus_strains]))
         minus_variants = list(set([record[key] for key in minus_strains]))
-        if len(plus_variants) == 1 and len(minus_variants) == 1:
-            return '1' # r2 = 1.0 by default
+        mismatch_dict[record['position']] = [len(plus_variants), len(minus_variants)]
+
+    if list(mismatch_dict.values()) == [[1, 1], [1, 1]]: # mt allele explains variation
+        return '1'
 
     return True
 
