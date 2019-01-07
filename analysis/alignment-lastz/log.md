@@ -1760,7 +1760,7 @@ so I'll be clearing out the 'cut' files.
 there was a huge bug in the maf alignment file causing serious
 mismatches! aaah! 
 
-trying it again:
+trying it again - after adding LD stuff to `main.sh` as well:
 
 ```bash
 time bash main.sh

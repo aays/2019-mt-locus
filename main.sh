@@ -116,6 +116,8 @@ done
 
 echo "Done."
 
+sleep 3
+
 echo "Generating long-form recombination estimates..."
 time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
 --mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_final.txt \
@@ -124,3 +126,34 @@ time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
 --fasta data/aligned-fastas/plus_strains_ref.fasta \
 --outfile data/recombination-ldhelmet/recombination-estimates/mt_full_long.txt
 
+echo "Done."
+
+sleep 3
+
+echo "Begin LD calculation across mt locus."
+echo "Transposing aligned fasta...'
+time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+--fasta data/aligned-fastas/mt_aligned_final.fasta \
+--outfile data/ld-windowed/mt_aligned_long.txt \
+--offset 298298 # mt plus coordinates
+
+echo "Done."
+
+sleep 3
+
+echo "Calculating pairwise LD in 1 kb windows..."
+time python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/mt_aligned_r2_1k.txt
+
+echo "Done."
+
+sleep 3
+
+echo "Computing ZnS statistic in 1 kb windows..."
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/mt_aligned_r2_1k.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/mt_aligned_zns_1k.txt
+echo "ZnS calculation completed."
