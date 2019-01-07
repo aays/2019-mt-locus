@@ -194,7 +194,7 @@ def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict
                             minus_seqs_out[strain] += '-'
                             was_gap = True
                         else:
-                            minus_seqs_out[strain] += minus_rev_dict[strain][i + start2]
+                            minus_seqs_out[strain] += minus_rev_dict[strain][position + start2]
                             was_gap = False
 
             outname = outdir + 'chromosome_6_' + str(chr6_start) + '-' + str(chr6_end) + '.fasta'

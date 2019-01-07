@@ -1701,3 +1701,68 @@ which also creates new fastas:
 ```bash
 time bash main_dp.sh
 ```
+
+## 1/1/2019
+
+so even the depth filter thing doesn't fix the
+issue with the two bizarre non-gametolog regions.
+
+what do the regions look like in IGV?
+
+update: seemingly paralogous. there are reads containing 'pairs'
+of variants while others have neither - and the split
+between these is about 50/50. but the depth filter should
+have caught these...
+
+I'm gonna do another (another!) version of `main.sh` that
+simply doesn't include CC2936 and CC2937 just to see
+what happens. this will be off the original fasta, not
+the one filtered for 2x depth. 
+
+```bash
+time bash main_cut.sh
+```
+
+## 2/2/2019
+
+didn't fix the issue at all:
+
+```R
+> d %>% group_by(is_gametolog) %>%
++ summarise(mean_rho = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog    mean_rho
+         <int>       <dbl>
+1            0 0.035871251
+2            1 0.002734562
+> d %>% filter(is_gametolog == 0) %>%
++ group_by(rho) %>% tally() %>% arrange(desc(rho))
+# A tibble: 35 x 2
+          rho     n
+        <dbl> <int>
+ 1 0.61108000  6753
+ 2 0.11520000  2780
+ 3 0.11504000    28
+ 4 0.01356500   130
+ 5 0.00338950    77
+ 6 0.00117970 11939
+ 7 0.00116800    52
+ 8 0.00106150    59
+ 9 0.00087495    19
+10 0.00075520     9
+# ... with 25 more rows
+```
+
+so I'll be clearing out the 'cut' files. 
+
+## 7/1/2019
+
+there was a huge bug in the maf alignment file causing serious
+mismatches! aaah! 
+
+trying it again:
+
+
+
+
+
