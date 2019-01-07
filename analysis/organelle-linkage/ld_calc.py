@@ -23,6 +23,10 @@ def args():
 
 
 def snppuller(vcf_file, chrom = None, start = None, end = None):
+    '''(str, str, int, int) -> iterable
+    creates an iterable that lazily loads in usable SNPs.
+    usable SNPs must be diallelic and nonsingletons.
+    '''
     vcfin = vcf.Reader(filename = vcf_file, compressed = True)
 
     def is_diallelic(record):
@@ -62,6 +66,10 @@ def snppuller(vcf_file, chrom = None, start = None, end = None):
             continue
 
 def straingetter(record1, record2, GQ_threshold = 30, DP_threshold = 20):
+    '''(vcf.Record, vcf.Record, int, int)
+    returns a list of strains with calls at both sites.
+    also filters for GQ and DP thresholds (defaults - GQ = 30, DP = 20)
+    '''
     rec1set = set([s.sample for s in record1.samples if s['GT'] != '.'])
     rec2set = set([s.sample for s in record2.samples if s['GT'] != '.'])
     strainlist = list(rec1set.intersection(rec2set))
@@ -73,13 +81,19 @@ def straingetter(record1, record2, GQ_threshold = 30, DP_threshold = 20):
         if gt1['GQ'] < GQ_threshold or gt2['GQ'] < GQ_threshold:
             garbage.append(strain)
         elif gt1['DP'] < DP_threshold or gt2['DP'] < DP_threshold:
-           garbage.append(strain)
+            garbage.append(strain)
     if garbage:
         for trash_strain in garbage:
             strainlist.remove(trash_strain)
     return strainlist
 
 def get_freqs(record1, record2):
+    '''(vcf.Record, vcf.Record) -> dict, dict
+    returns two dictionaries -
+    the first contains allele frequencies while
+    the second contains genotype frequencies.
+    used for LD calculations.
+    '''
     strainlist = straingetter(record1, record2)
     haplist = []
     p_count, q_count, total_calls = 0, 0, 0
@@ -168,6 +182,10 @@ def ld_calc(values, haps):
             
 
 def all_ld_calc(vcf_file, regions, outfile):
+    '''(str, list, str) -> None
+    iterates through pairwise combinations of SNPs in input
+    file and writes LD values to outfile.
+    '''
     with open(outfile, 'w') as f:
         f.write('chrom1 pos1 chrom2 pos2 d dprime r2\n')
 
