@@ -16,6 +16,7 @@ creating the necessary VCFs:
 
 ```bash
 mkdir -p data/references/gvcfs/
+mkdir -p data/organelle-linkage/vcfs/
 cd data/references/gvcfs/
 ln -sv /scratch/research/data/chlamydomonas/quebec/gVCFs/* .
 ln -sv /scratch/research/data/chlamydomonas/species_wide/gVCFs/* .
@@ -44,7 +45,7 @@ java -jar ./bin/GenomeAnalysisTK.jar -T GenotypeGVCFs \
 --variant data/references/gvcfs/CC3075.haplotypeCalled.g.vcf.gz \
 --variant data/references/gvcfs/CC3079.haplotypeCalled.g.vcf.gz \
 --variant data/references/gvcfs/CC3084.haplotypeCalled.g.vcf.gz \
--o data/organelle-linkage/mtmtd1midminus.vcf
+-o data/organelle-linkage/vcfs/mtmtd1midminus.vcf
 
 java -jar ./bin/GenomeAnalysisTK.jar -T GenotypeGVCFs \
 -R /scratch/research/references/chlamydomonas/5.3_chlamy_w_organelles_mt_minus/chlamy.5.3.w_organelles_mtMinus.fasta \
@@ -58,13 +59,13 @@ java -jar ./bin/GenomeAnalysisTK.jar -T GenotypeGVCFs \
 --variant data/references/gvcfs/CC3071.haplotypeCalled.g.vcf.gz \
 --variant data/references/gvcfs/CC3076.haplotypeCalled.g.vcf.gz \
 --variant data/references/gvcfs/CC3086.haplotypeCalled.g.vcf.gz \
--o data/organelle-linkage/cpmtafusplus.vcf
+-o data/organelle-linkage/vcfs/cpmtafusplus.vcf
 
-bgzip data/organelle-linkage/mtmtd1midminus.vcf
-tabix data/organelle-linkage/mtmtd1midminus.vcf.gz
+bgzip data/organelle-linkage/vcfs/mtmtd1midminus.vcf
+tabix data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz
 
-bgzip data/organelle-linkage/cpmtafusplus.vcf
-tabix data/organelle-linkage/cpmtafusplus.vcf.gz    
+bgzip data/organelle-linkage/vcfs/cpmtafusplus.vcf
+tabix data/organelle-linkage/vcfs/cpmtafusplus.vcf.gz    
 
 rm plus.intervals
 rm minus.intervals
@@ -96,12 +97,12 @@ although frankly neither can I. time to start fresh with a new script:
 
 ```bash
 time python3.5 analysis/organelle-linkage/ld_calc.py \
--v data/organelle-linkage/mtmtd1midminus.vcf.gz \
+-v data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz \
 -r mtMinus mtDNA \
 -o data/organelle-linkage/minus.txt
 
 time python3.5 analysis/organelle-linkage/ld_calc.py \
--v data/organelle-linkage/cpmtafusplus.vcf.gz \
+-v data/organelle-linkage/vcfs/cpmtafusplus.vcf.gz \
 -r chromosome_6 cpDNA \
 -o data/organelle-linkage/plus.txt
 ```
@@ -112,7 +113,7 @@ mtDNA with itself:
 
 ```bash
 time python3.5 analysis/organelle-linkage/ld_calc.py \
--v data/organelle-linkage/mtmtd1midminus.vcf.gz \
+-v data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz \
 -r mtDNA mtDNA \
 -o data/organelle-linkage/mt_only.txt
 ```

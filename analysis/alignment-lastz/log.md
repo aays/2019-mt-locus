@@ -1762,6 +1762,10 @@ mismatches! aaah!
 
 trying it again:
 
+```bash
+time bash main.sh
+```
+
 
 
 

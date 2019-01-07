@@ -843,6 +843,122 @@ what the hell is going on in these regions? back
 to the `alignment-lastz` log
 
 
+## 4/1/2019
+
+thought - what if we increased the non-gametolog
+files' sample size to 19? 
+
+ie is LDhelmet sample size sensitive?
+
+```python
+import sys
+from Bio import SeqIO
+
+fname = sys.argv[-1]
+outname = fname.split('.')[0] + '_added.fasta'
+
+d = [s for s in SeqIO.parse(fname, 'fasta')]
+seq_len = len(d[0].seq)
+dummy = ' '.join(['N' for i in range(seq_len)])
+
+counter = len(d)
+
+with open(outname, 'w') as f:
+    dummy_count = 1
+    for s in d:
+        f.write('>' + s.id + '\n')
+        f.write(str(s.seq) + '\n')
+    while counter < 19:
+        f.write('>dummy' + str(dummy_count) + '\n')
+        f.write(dummy + '\n')
+        counter += 1
+        dummy_count += 1
+```
+    
+```bash
+time bash dummy_seqs.py \
+data/aligned-fasta/plus_strains_ref.fasta
+
+# script to just get rho in this new file
+# and create a new long form file
+time bash plus_added.sh
+```
+
+no change - LDhelmet is not sensitive to sample size:
+
+```R
+> d_new %>% group_by(is_gametolog) %>% summarise(m = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog           m
+         <int>       <dbl>
+1            0 0.017531205
+2            1 0.002295553
+> d_old %>% group_by(is_gametolog) %>% summarise(m = mean(rho, na.rm = TRUE))
+# A tibble: 2 x 2
+  is_gametolog           m
+         <int>       <dbl>
+1            0 0.017531205
+2            1 0.002295553
+```
+
+## 5/1/2019
+
+```python
+>>> import antr
+>>> table = 'data/annotation_table_rho.txt.gz'
+>>> p = antr.Reader(table)
+>>> region = [rec for rec in p.fetch('chromosome_6', 520000, 550000)]
+>>> len(region)
+30000
+>>> d = dict.fromkeys([rec.pos for rec in region], 0.0)
+>>> len(d)
+30000
+>>> for rec in region:
+  2     d[rec.pos] = rec.mutability
+>>> first = [d[k] for k in d if k < 535000 if d[k] != 'NA']
+>>> sum(first) / len(first)
+0.08914098298524313
+>>> weird = [d[k] for k in d if 535000 < k < 543000 and d[k] != 'NA']
+>>> len(first)
+5907
+>>> len(weird)
+5235
+>>> sum(weird) / len(weird)
+0.05719144884924113
+>>> after = [d[k] for k in d if k > 543000 and d[k] != 'NA']
+>>> sum(after) / len(after)
+0.05937267240785287
+```
+
+if anything, the weird region has a lower average mutability score (0.057) than
+the regions on either side of it. 
+
+how does SNP density correlate with recombination rate?
+
+```R
+> library(readr); library(dplyr, warn.conflicts = FALSE); library(magrittr)
+> full <- read_delim('mt_full_long.txt', delim = ' ')
+> snps <- read_delim('../../../tests/autosomal_test/snp_density_out.txt', delim = ' ')
+> full %<>%
++ mutate(start = floor(position / 2000) * 2000) %>%
++ group_by(start) %>%
++ summarise(mean_rho = mean(rho, na.rm = TRUE), is_gametolog = sum(is_gametolog))
+> d <- left_join(full, snps, by = 'start')
+> cor.test(d$snp_count, d$mean_rho, method = 'spearman')
+
+        Spearman's rank correlation rho
+
+data:  d$snp_count and d$mean_rho
+S = 867950, p-value < 2.2e-16
+alternative hypothesis: true rho is not equal to 0
+sample estimates:
+      rho
+0.6667007
+
+Warning message:
+In cor.test.default(d$snp_count, d$mean_rho, method = "spearman") :
+  Cannot compute exact p-value with ties
+```
 
 
 
