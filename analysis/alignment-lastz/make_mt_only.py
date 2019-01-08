@@ -14,6 +14,7 @@ the mt- the query
 import argparse
 from tqdm import tqdm
 from Bio import SeqIO
+import re
 import sys
 
 def args():
@@ -31,7 +32,7 @@ def args():
 
     args = parser.parse_args()
 
-    return [args.fasta, args.alignment, args.mt_allele, args.output]
+    return args.fasta, args.alignment, args.mt_allele, args.output
 
 class aln(object):
     '''
@@ -239,7 +240,8 @@ def main():
     print('Writing masked sequences to ', output, '.', sep = '')
     with open(output, 'w') as f:
         for strain in strain_seqs.keys():
-            f.write('>' + strain + '\n')
+            strain_name = re.search('CC[0-9]{4}', strain).group(0)
+            f.write('>' + strain_name + '\n')
             f.write(strain_seqs[strain] + '\n')
     print('Done.')
     print('Hooray!')
