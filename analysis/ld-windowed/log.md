@@ -196,3 +196,15 @@ time python3.5 analysis/ld-windowed/zns_calc.py \
 ```
 
 took 7.5 hours! 
+
+## 8/1/2019
+
+so a pretty serious error in the alignment has now been fixed (see
+the `alignment-lastz` log - there should be a lot fewer mismatches
+in the alignment now
+
+redoing the above steps:
+
+`r2_calc` took just 25 minutes, and `zns_calc` 9! much faster than the
+multi-hour processes of the past - I guess that's what we get with
+a bunch of false misalignments
