@@ -18,7 +18,9 @@ time ./bin/ldhelmet table_gen \
 --conf_file data/recombination-ldhelmet/intermediate-files/${base}.conf \
 --theta 0.01 \
 --rhos 0.0 0.1 10.0 1.0 100.0 \
---output_file data/recombination-ldhelmet/intermediate-files/${base}.lk
+--output_file data/recombination-ldhelmet/intermediate-files/${base}.lk > table_gen 2> table_gen2
+
+rm -v table_gen*
 
 time ./bin/ldhelmet pade \
 --num_threads 10 \
@@ -47,5 +49,5 @@ data/recombination-ldhelmet/intermediate-files/${base}.post
 
 sleep 3
 
-echo "Removing temp files..."
-rm -v data/recombination-ldhelmet/intermediate-files/${base}.* ;
+# echo "Removing temp files..."
+# rm -v data/recombination-ldhelmet/intermediate-files/${base}.* ;
