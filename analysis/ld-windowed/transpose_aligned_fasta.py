@@ -38,7 +38,6 @@ def snp_check(base_list):
         1. variant sites (obviously)
         2. diallelic
         3. non-singletons
-        4. not just varying by mt allele
     '''
     # remove gaps/Ns from consideration
     base_list = [base for base in base_list if base not in ['-', 'N']]
