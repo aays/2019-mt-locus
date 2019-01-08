@@ -17,10 +17,12 @@ def args():
                         type = str, help = 'File to write to')
     parser.add_argument('-w', '--windowsize', required = True,
                         type = str, help = 'Maximum dist b/w SNPs')
+    parser.add_argument('-n', '--non_gametolog', required = False,
+                        action = 'store_true', help = 'Run in non-gametolog file mode.')
 
     args = parser.parse_args()
 
-    return args.filename, args.outfile, int(args.windowsize)
+    return args.filename, args.outfile, int(args.windowsize), args.non_gametolog
 
     
 def get_freqs(record1, record2):
@@ -125,10 +127,17 @@ def r2calc(record1, record2):
                    freqs['q1'] * freqs['q2'])
     return round(r2, 5)
 
-def usable_pair(record1, record2, windowsize):
+def usable_pair(record1, record2, windowsize, non_gametolog):
     '''
     checks whether the two records are usable
     for an LD calculation
+
+    if non_gametolog == True, will not check to see whether
+    LD can be explained by misalignment b/w two mt types
+    (since there's only one mt type present anyways)
+
+    (that check is only present to speed up aligned mt LD
+    calculations anyways)
     '''
     # usable SNP?
     if record2['is_snp'] == '0':
@@ -148,26 +157,29 @@ def usable_pair(record1, record2, windowsize):
         return False
 
     # is it only a 'SNP' due to a mismatch in the alignment?
+    # only applies to aligned mt
     # see ld-windowed log for details
-    plus_strains = ['CC2936', 'CC2937', 'CC3060', 'CC3064',
-                    'CC3065', 'CC3068', 'CC3071', 'CC3076', 'CC3086']
-    minus_strains = ['CC2935', 'CC2938', 'CC3059', 'CC3061',
-                     'CC3062', 'CC3063', 'CC3073', 'CC3075',
-                     'CC3079', 'CC3084']
 
-    # a very ugly method...
-    mismatch_dict = {}
-    for record in [record1, record2]:
-        plus_variants = list(set([record[key] for key in plus_strains]))
-        minus_variants = list(set([record[key] for key in minus_strains]))
-        mismatch_dict[record['position']] = [len(plus_variants), len(minus_variants)]
+    if not non_gametolog:
+        plus_strains = ['CC2936', 'CC2937', 'CC3060', 'CC3064',
+                        'CC3065', 'CC3068', 'CC3071', 'CC3076', 'CC3086']
+        minus_strains = ['CC2935', 'CC2938', 'CC3059', 'CC3061',
+                         'CC3062', 'CC3063', 'CC3073', 'CC3075',
+                         'CC3079', 'CC3084']
 
-    if list(mismatch_dict.values()) == [[1, 1], [1, 1]]: # mt allele explains variation
-        return '1'
+        # a very ugly method...
+        mismatch_dict = {}
+        for record in [record1, record2]:
+            plus_variants = list(set([record[key] for key in plus_strains]))
+            minus_variants = list(set([record[key] for key in minus_strains]))
+            mismatch_dict[record['position']] = [len(plus_variants), len(minus_variants)]
+
+        if list(mismatch_dict.values()) == [[1, 1], [1, 1]]: # mt allele explains variation
+            return '1'
 
     return True
 
-def ld_calc(infile, outfile, windowsize):
+def ld_calc(infile, outfile, windowsize, non_gametolog):
     '''(str, str, int) -> None
     calculates r2 between SNPs of specified windowsize
     and writes to an outfile
@@ -185,7 +197,7 @@ def ld_calc(infile, outfile, windowsize):
                 if record1['is_snp'] == '0':
                     continue
                 for record2 in target_reader:
-                    usable = usable_pair(record1, record2, windowsize)
+                    usable = usable_pair(record1, record2, windowsize, non_gametolog)
                     if usable == 'out of range':
                         break
                     elif usable == '1':
@@ -208,8 +220,8 @@ def ld_calc(infile, outfile, windowsize):
                         continue
 
 def main():
-    infile, outfile, windowsize = args()
-    ld_calc(infile, outfile, windowsize)
+    infile, outfile, windowsize, non_gametolog = args()
+    ld_calc(infile, outfile, windowsize, non_gametolog)
 
 if __name__ == '__main__':
     main()

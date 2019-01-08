@@ -208,3 +208,27 @@ redoing the above steps:
 `r2_calc` took just 25 minutes, and `zns_calc` 9! much faster than the
 multi-hour processes of the past - I guess that's what we get with
 a bunch of false misalignments
+
+now for LD in the plus non-gametolog file, to compare against:
+
+```bash
+time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+--fasta data/aligned-fastas/plus_non_gametolog.fasta \
+--outfile data/ld-windowed/plus_non_gametolog_long.txt \
+--offset 298298
+
+time python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/plus_non_gametolog_long.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/plus_NG_r2_1k.txt \
+--non_gametolog
+
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/plus_NG_r2_1k.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/plus_NG_zns_1k.txt
+```
+
+
+
+
