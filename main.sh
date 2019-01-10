@@ -54,7 +54,7 @@ time python3.5 analysis/alignment-lastz/combine_fastas.py \
 
 echo "mt-aligned file created."
 echo "Clearing intermediate files..."
-rm -v data/aligned-fastas/mt_aligned_transposed*
+# rm -v data/aligned-fastas/mt_aligned_transposed*
 
 sleep 3
 
@@ -157,3 +157,31 @@ time python3.5 analysis/ld-windowed/zns_calc.py \
 --windowsize 1000 \
 --outfile data/ld-windowed/mt_aligned_zns_1k.txt
 echo "ZnS calculation completed."
+
+
+sleep 3
+
+# organelle linkage pipeline
+
+# mtDNA with mt-
+time python3.5 analysis/organelle-linkage/ld_calc.py \
+--vcf_file data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz \
+--regions mtMinus mtDNA \
+--outfile data/organelle-linkage/minus.txt
+
+# cpDNA with mt+
+time python3.5 analysis/organelle-linkage/ld_calc.py \
+--vcf_file data/organelle-linkage/vcfs/cpmtafusplus.vcf.gz \
+--regions chromosome_6 cpDNA \
+--outfile data/organelle-linkage/plus.txt
+
+# mtDNA with self
+time python3.5 analysis/organelle-linkage/ld_calc.py \
+--vcf_file data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz \
+--regions mtDNA mtDNA \
+--outfile data/organelle-linkage/mt_only.txt
+
+# random inter-chr pairs
+time python3.5 analysis/organelle-linkage/all_pairs_calc.py \
+--vcf_file data/organelle_linkage/vcfs/all_variants_filtered.vcf.gz \
+--outfile data/organelle_linkage/allpairs.txt

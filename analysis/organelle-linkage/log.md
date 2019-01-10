@@ -97,14 +97,14 @@ although frankly neither can I. time to start fresh with a new script:
 
 ```bash
 time python3.5 analysis/organelle-linkage/ld_calc.py \
--v data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz \
--r mtMinus mtDNA \
--o data/organelle-linkage/minus.txt
+--vcf_file data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz \
+--regions mtMinus mtDNA \
+--outfile data/organelle-linkage/minus.txt
 
 time python3.5 analysis/organelle-linkage/ld_calc.py \
--v data/organelle-linkage/vcfs/cpmtafusplus.vcf.gz \
--r chromosome_6 cpDNA \
--o data/organelle-linkage/plus.txt
+--vcf_file data/organelle-linkage/vcfs/cpmtafusplus.vcf.gz \
+--regions chromosome_6 cpDNA \
+--outfile data/organelle-linkage/plus.txt
 ```
 
 looks good!
@@ -113,22 +113,82 @@ mtDNA with itself:
 
 ```bash
 time python3.5 analysis/organelle-linkage/ld_calc.py \
--v data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz \
--r mtDNA mtDNA \
--o data/organelle-linkage/mt_only.txt
+--vcf_file data/organelle-linkage/vcfs/mtmtd1midminus.vcf.gz \
+--regions mtDNA mtDNA \
+--outfile data/organelle-linkage/mt_only.txt
 ```
 
+## 8/1/2019
 
+now for the random inter-chr pairs calculation.
 
+first, we'll make a vcf containing all the strains being used here:
 
+```bash
+touch exclusions.intervals
+for line in mtDNA cpDNA mtMinus ;
+    do echo $line >> exclusions.intervals;
+done
 
+java -jar ./bin/GenomeAnalysisTK.jar -T GenotypeGVCFs \
+-R /scratch/research/references/chlamydomonas/5.3_chlamy_w_organelles_mt_minus/chlamy.5.3.w_organelles_mtMinus.fasta \
+-XL exclusions.intervals \
+--variant data/references/gvcfs/CC2935.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC2938.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3059.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3061.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3062.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3063.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3073.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3075.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3079.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3084.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC2936.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC2937.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3060.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3064.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3065.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3068.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3071.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3076.haplotypeCalled.g.vcf.gz \
+--variant data/references/gvcfs/CC3086.haplotypeCalled.g.vcf.gz \
+-o data/organelle-linkage/vcfs/all_variants.vcf
+```
 
+where `exclusions.intervals` is
+```bash
+cpDNA
+mtDNA
+mtMinus
+```
 
+finally done! (took 2.38 hours)
 
+```bash
+bgzip data/organelle-linkage/vcfs/all_variants.vcf
+tabix data/organelle-linkage/vcfs/all_variants.vcf.gz
+rm exclusions.intervals
+```
 
+now to subset:
 
+```bash
+time python3.5 analysis/organelle-linkage/vcf_subset.py \
+--vcf data/organelle-linkage/vcfs/all_variants.vcf.gz \
+--filter_fraction 0.0002 \
+--outfile data/organelle-linkage/vcfs/all_variants_filtered.vcf
 
+bgzip data/organelle-linkage/vcfs/all_variants_filtered.vcf
+tabix data/organelle-linkage/vcfs/all_variants_filtered.vcf.gz
+```
 
+and, finally, the all pairs calculation:
 
+```bash
+time python3.5 analysis/organelle-linkage/all_pairs_calc.py \
+--vcf_file data/organelle_linkage/vcfs/all_variants_filtered.vcf.gz \
+--outfile data/organelle_linkage/allpairs.txt
+```
 
+aaand done!
 

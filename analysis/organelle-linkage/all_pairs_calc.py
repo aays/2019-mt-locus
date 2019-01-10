@@ -21,10 +21,13 @@ def args():
     return args.vcf_file, args.outfile
 
 
-def snppuller(vcf_file, chrom = None, start = None, end = None):
+def snppuller(vcf_file):
     '''(str, str, int, int) -> iterable
     creates an iterable that lazily loads in usable SNPs.
     usable SNPs must be diallelic and nonsingletons.
+
+    this version of snppuller differs from the ld_calc
+    one in that it doesn't take in chrom, start, or end values
     '''
     vcfin = vcf.Reader(filename = vcf_file, compressed = True)
 
@@ -57,8 +60,7 @@ def snppuller(vcf_file, chrom = None, start = None, end = None):
         else:
             return False
 
-    args = [item for item in [chrom, start, end] if item]
-    for record in vcfin.fetch(*args):
+    for record in vcfin:
         if usable_record(record):
             yield record
         else:
@@ -88,7 +90,7 @@ def straingetter(record1, record2, GQ_threshold = 30, DP_threshold = 20):
 
     return d, dprime, r2
 
-def all_pairs_ld_calc(vcf_file, regions, outfile):
+def all_pairs_ld_calc(vcf_file, outfile):
     '''(str, list, str) -> None
     iterates through pairwise combinations of SNPs in input
     file and writes LD values to outfile.
@@ -99,9 +101,13 @@ def all_pairs_ld_calc(vcf_file, regions, outfile):
         ref_sites = snppuller(vcf_file)
 
         for record1 in tqdm(ref_sites):
+            if len(record1.ALT) > 1:
+                continue
             target_sites = snppuller(vcf_file)
             for record2 in target_sites:
-                if get_freqs(record1, record2):
+                if len(record2.ALT) > 1:
+                    continue
+                elif get_freqs(record1, record2):
                     d, dprime, r2 = ld_calc(*get_freqs(record1, record2))
                     line_out = [record1.CHROM, record1.POS, record2.CHROM, 
                                 record2.POS, d, dprime, r2]
@@ -109,8 +115,8 @@ def all_pairs_ld_calc(vcf_file, regions, outfile):
                 
 
 def main():
-    vcf_file, regions, outfile = args()
-    all_ld_calc(vcf_file, regions, outfile)
+    vcf_file, outfile = args()
+    all_pairs_ld_calc(vcf_file, outfile)
 
 if __name__ == '__main__':
     main()
