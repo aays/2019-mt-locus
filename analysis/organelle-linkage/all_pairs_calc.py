@@ -22,7 +22,7 @@ def args():
 
 
 def snppuller(vcf_file):
-    '''(str, str, int, int) -> iterable
+    '''(str) -> iterable
     creates an iterable that lazily loads in usable SNPs.
     usable SNPs must be diallelic and nonsingletons.
 
