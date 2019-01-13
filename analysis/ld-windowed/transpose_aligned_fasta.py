@@ -9,6 +9,7 @@ positions are 1-based
 '''
 
 import argparse
+import re
 from Bio import SeqIO
 from tqdm import tqdm
 
@@ -22,13 +23,15 @@ def args():
     parser.add_argument('-o', '--outfile', required = True,
                         type = str, help = 'Name of file to write to')
     parser.add_argument('-s', '--offset', required = False,
-                        type = str, help = 'Value to offset position column by [optional]')
+                        type = int, help = 'Value to offset position column by [optional]')
     parser.add_argument('-x', '--snps_only', required = False,
                         action = 'store_true', help = 'Will output usable SNPs only [optional]')
+    parser.add_argument('-i', '--infer_offset', required = False,
+                        action = 'store_true', help = 'Use for individual alignment files [optional]')
 
     args = parser.parse_args()
 
-    return args.fasta, args.outfile, int(args.offset), args.snps_only
+    return args.fasta, args.outfile, args.offset, args.snps_only, args.infer_offset
 
 
 def snp_check(base_list):
@@ -65,8 +68,18 @@ def snp_check(base_list):
     else:
         return '0'
 
+def get_offset(infile):
+    ''' (str) -> int
+    if infer_offset setting is selected, this function
+    will use the standardized filenames to infer
+    the offset of the aligned region
+    '''
+    coordinates = re.search('[0-9]{6}-[0-9]{6}', infile).group(0)
+    start, end = [int(n) for n in coordinates.split('-')]
+    return start
 
-def transpose_fastas(infile, outfile, offset = None, snps_only = False):
+
+def transpose_fastas(infile, outfile, offset=None, snps_only=False):
     ''' (str, str, int, bool) -> None
     takes in aligned fasta and transposes to file
     offsets by position if specified
@@ -74,7 +87,7 @@ def transpose_fastas(infile, outfile, offset = None, snps_only = False):
     '''
     with open(outfile, 'w') as f:
         seqs = [s for s in SeqIO.parse(infile, 'fasta')]
-        strains = [s.id for s in seqs]
+        strains = [re.search('CC[0-9]{4}', s.id).group(0) for s in seqs]
         seq_len = len(seqs[0].seq)
         assert len(set([len(s.seq) for s in seqs])) == 1 # all same length
 
@@ -84,6 +97,8 @@ def transpose_fastas(infile, outfile, offset = None, snps_only = False):
         for i in tqdm(range(seq_len)):
             if offset:
                 position = i + offset + 1
+            elif infer_offset:
+                position = i + inferred_offset + 1
             elif not offset:
                 position = i
             bases = [seq[i] for seq in seqs]
@@ -98,11 +113,49 @@ def transpose_fastas(infile, outfile, offset = None, snps_only = False):
             elif not snps_only:
                 f.write(str(position) + ' ' + bases_out + ' ' + is_snp_out + '\n')
 
+def transpose_inferred_fastas(infile, outfile, infer_offset):
+    ''' (str, str, bool) -> None
+    takes in aligned fasta and transposes to file.
+    this version is optimized for the 'infer offset' setting,
+    used when transposing individual alignments instead of the
+    'master' mt locus alignment.
+    '''
+    with open(outfile, 'w') as f:
+        seqs = [s for s in SeqIO.parse(infile, 'fasta')]
+        strains = [re.search('CC[0-9]{4}', s.id).group(0) for s in seqs]
+        seq_len = len(seqs[0].seq)
+        assert len(set([len(s.seq) for s in seqs])) == 1
+        inferred_offset = get_offset(infile)
+
+        # header
+        f.write('position ' + ' '.join(strains) + ' is_snp\n')
+
+        position = inferred_offset # written to file
+        was_gap = False
+        for i in tqdm(range(seq_len)):
+            if not was_gap:
+                position += 1
+            elif was_gap:
+                position += 0
+            bases = [seq[i] for seq in seqs]
+            plus_bases = list(set(bases[:9])) # a very manual method...
+            if len(plus_bases) == 1 and plus_bases[0] == '-': # gap in plus
+                was_gap = True
+                continue
+            else:
+                is_snp_out = snp_check(bases)
+                bases_out = ' '.join([seq[i] for seq in seqs])
+                f.write(str(position) + ' ' + bases_out + ' ' + is_snp_out + '\n')
+                was_gap = False
+                
 
 
 def main():
-    fasta, outfile, offset, snps_only = args()
-    transpose_fastas(fasta, outfile, offset, snps_only)
+    fasta, outfile, offset, snps_only, infer_offset = args()
+    if not infer_offset:
+        transpose_fastas(fasta, outfile, offset, snps_only)
+    elif infer_offset:
+        transpose_inferred_fastas(fasta, outfile, infer_offset)
 
 if __name__ == '__main__':
     main()

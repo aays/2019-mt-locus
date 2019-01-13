@@ -229,6 +229,115 @@ time python3.5 analysis/ld-windowed/zns_calc.py \
 --outfile data/ld-windowed/plus_NG_zns_1k.txt
 ```
 
+## 11/1/2019
+
+running the scripts above on the gametolog chunks individually:
+
+```bash
+mkdir -p data/ld-windowed/alignments-temp
+mkdir -p data/ld-windowed/r2
+mkdir -p data/ld-windowed/zns
+
+for fname in data/aligned-fastas/alignments/*fasta; do
+    base=$(basename $fname .fasta)
+
+    time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+    --fasta ${fname} \
+    --outfile data/ld-windowed/alignments-temp/${base}_long.txt
+    --offset 298298
+
+    time python3.5 analysis/ld-windowed/r2_calc.py \
+    --filename data/ld-windowed/alignments-temp/${base}_long.txt \
+    --windowsize 1000 \
+    --outfile data/ld-windowed/r2/${base}_r2_1k.txt
+
+    time python3.5 analysis/ld-windowed/zns_calc.py \
+    --filename data/ld-windowed/r2/${base}_r2_1k.txt \
+    --windowsize 1000 \
+    --outfile data/ld-windowed/zns/${base}_zns_1k.txt;
+done
+
+```
+
+## 12/1/2019
+
+so our transposition script won't work with these files.
+
+two issues:
+1. the offset needs to be dynamically updated from each file
+2. these individual alignments still have plus gaps in them
+
+perhaps the alignment script can be updated with an 
+'infer-offset' setting? this setting would use the
+(standardized) filenames to infer offset levels
+and also crunch together gaps in the plus.
+
+## 13/1/2019
+
+trying this after updating the script:
+
+```bash
+time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+--fasta data/aligned-fastas/alignments/chromosome_6_309976-323648.fasta \
+--outfile test2.out \
+--infer_offset
+```
+
+looks good!
+
+round 2:
+
+```bash
+mkdir -p data/ld-windowed/alignments-temp
+mkdir -p data/ld-windowed/r2
+mkdir -p data/ld-windowed/zns
+
+for fname in data/aligned-fastas/alignments/*fasta; do
+    base=$(basename $fname .fasta)
+
+    time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+    --fasta ${fname} \
+    --outfile data/ld-windowed/alignments-temp/${base}_long.txt
+    --infer_offset
+
+    time python3.5 analysis/ld-windowed/r2_calc.py \
+    --filename data/ld-windowed/alignments-temp/${base}_long.txt \
+    --windowsize 1000 \
+    --outfile data/ld-windowed/r2/${base}_r2_1k.txt
+
+done
+
+```
+
+we'll need to combine these r2 outfiles into a single zns calculation somehow:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/r2/${base}_r2_1k.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/zns/${base}_zns_1k.txt;
+```
+
+update: there's an issue here, where overlapping alignments are returning different
+LD values. if there are two alignments in the mt- plus orientation, they should have
+the same level of LD, but a third alignment in the mt- minus orientation might result
+in a different LD value.
+
+we should resolve these as before - reducing multiple overlapping alignments
+into the one alignment with the highest score.
+
+```
+> r2_files %>% filter(snp1 == 422115, snp2 == 422301)
+# A tibble: 3 x 4
+                                  name   snp1   snp2     r2
+                                 <chr>  <int>  <int>  <dbl>
+1 chromosome_6_420433-424443_r2_1k.txt 422115 422301 1.0000
+2 chromosome_6_421359-424446_r2_1k.txt 422115 422301 0.7875
+3 chromosome_6_421599-424445_r2_1k.txt 422115 422301 1.0000
+```
+
+back to `alignment-lastz`!
+
 
 
 
