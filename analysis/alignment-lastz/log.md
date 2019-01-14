@@ -1766,7 +1766,115 @@ trying it again - after adding LD stuff to `main.sh` as well:
 time bash main.sh
 ```
 
+## 13/1/2019
+
+and another latent issue - overlapping alignments (see the `ld-windowed` log)
+
+we need a python script that uses the `csv` module to go through the lastz
+alignment and resolve regions with multiple matches by picking the
+alignment with the highest score.
+
+```bash
+time python3.5 analysis/alignment-lastz/clean_lastz_output-2.py \
+--filename data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
+--outfile test_align.bed
+```
+
+updating the script so that it only removes overlaps when a alignment
+of lower score also shares >50% of its sequence cover with a better alignment
+
+```bash
+time python3.5 analysis/alignment-lastz/clean_lastz_output_2.py \
+--filename data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
+--threshold 0.7 \
+--outfile test_align_threshold.bed
+```
+
+looks good! 
+
+does this actually return the same file if run on
+the original? because that would eliminate the need
+for the `clean_lastz_output` R script
 
 
+```bash
+time python3.5 analysis/alignment-lastz/clean_lastz_output_2.py \
+--filename data/alignment-lastz/lastz-align-30k-gapped.bed \
+--threshold 0.7 \
+--outfile test_align_threshold2.bed
+```
 
+works like a charm (after updating the column names) -
+the only difference is that a pair of alignments
+that map to paralogous regions and (therefore have
+the exact same score) are preserved. the remainder of our
+scripts will end up picking one anyways - they're otherwise
+identical sequence wise anyways.
+
+and so this script can be used to make the new
+`lastz-align-30k-gapped-filtered.bed`. we'll
+stick to a 75% overlap threshold:
+
+```bash
+time python3.5 analysis/alignment-lastz/clean_lastz_output_2.py \
+--filename data/alignment-lastz/lastz-align-30k-gapped.bed \
+--threshold 0.75 \
+--outfile data/alignment-lastz/lastz-align-30k-gapped-filtered.bed
+```
+
+next up, we should get to adding the C domain at the
+end of our aligned fastas. this can be obtained from
+the main VCF containing both mt+ and mt- strains
+since both are effectively identical. to get the coordinates,
+we'll have to use the GFF and use the ending of MAT3 (iirc)
+in order to define the 3' bound of the domain.
+
+we'll need a quick script to tack this on to the 'master
+alignment', and another to create that tacked on bit as
+a separate fasta for LD calculations in `ld-windowed`.
+perhaps the second first, since that individual fasta
+can be easily pasted on to the master alignment once it's
+been made?
+
+## 14/1/2019
+
+removing the old clean lastz R script and keeping just the python equivalent
+
+checking the C domain coordinates:
+
+```bash
+$ grep -C 2 'MAT3' final.strict.GFF3
+chromosome_6    phytozome8_0    five_prime_UTR  936876  937012  .       -       .       ID=PAC:26893507.five_prime_UTR.1;Parent=PAC:26893507;pacid=26893507;ness_ID=26893507
+chromosome_6    phytozome8_0    gene    937146  943474  .       +       .       ID=Cre06.g255450;Name=Cre06.g255450
+chromosome_6    phytozome8_0    mRNA    937146  943474  .       +       .       ID=PAC:26893469;Name=Cre06.g255450.t1.3;pacid=26893469;longest=1;geneName=MAT3;Parent=Cre06.g255450;ness_ID=26893469
+chromosome_6    phytozome8_0    exon    937146  937340  .       +       .       ID=PAC:26893469.exon.1;Parent=PAC:26893469;pacid=26893469;ness_ID=26893469
+chromosome_6    phytozome8_0    five_prime_UTR  937146  937181  .       +       .       ID=PAC:26893469.five_prime_UTR.1;Parent=PAC:26893469;pacid=26893469;ness_ID=26893469
+```
+
+so 826738-943474 seems our best bet (since vcf2fasta is 1-based end-inclusive)
+
+```bash
+time ./bin/vcf2fasta.py -v data/references/all_quebec.HC.vcf.gz \
+-r data/references/mtPlus_ref.chromosome_6.fasta \
+-i chromosome_6:826738-943474 \
+-s CC2936 CC2937 CC3060 CC3064 CC3065 CC3068 CC3071 CC3076 CC3086 \
+CC2935 CC2938 CC3059 CC3061 CC3062 CC3063 CC3073 CC3075 CC3079 CC3084 \
+--min_GQ 30 > data/aligned-fastas/c_domain_aligned.fasta
+```
+
+placing a copy of this in the alignments folder:
+
+```bash
+cp data/aligned-fastas/c_domain_aligned.fasta \
+data/aligned-fastas/alignments/chromosome_6_826738-943474.fasta
+```
+
+and, finally, a script to append this to the master alignment:
+
+```bash
+time python3.5 analysis/alignment-lastz/append_c_domain.py \
+--mt_aligned data/aligned_fastas/mt_aligned_final.fasta \
+--c_domain data/aligned_fastas/c_domain_aligned.fasta \
+--outfile data/aligned_fastas/mt_aligned_all.fasta
+```
 

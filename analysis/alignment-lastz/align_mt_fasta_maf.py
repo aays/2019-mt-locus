@@ -117,7 +117,7 @@ def parse_aln(filename):
     with open(filename) as f:
         aln_bed_file = [aln_bed(*line.split('\t')) 
                         for line in f.readlines() 
-                        if not line.startswith('score')]
+                        if not line.startswith('#score')]
         # choosing best lastz hit
         correct_starts = dict.fromkeys([a.zstart1
                                       for a in aln_bed_file])
@@ -144,7 +144,9 @@ def write_fastas(aln_file, correct_starts, plus_dict, minus_dict, minus_rev_dict
     for a in tqdm(aln_file.alignments()):
         score, start1, start2 = a.score, a.start1, a.start2
         # check to see this is the correct alignment
-        if correct_starts[start1] != [score, start2]:
+        if start1 not in correct_starts:
+            continue
+        elif correct_starts[start1] != [score, start2]:
             continue
         elif correct_starts[start1] == [score, start2]:
             plus_seqs_out = dict.fromkeys(list(plus_dict.keys()), '')
