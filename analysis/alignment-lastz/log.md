@@ -1878,3 +1878,21 @@ time python3.5 analysis/alignment-lastz/append_c_domain.py \
 --outfile data/aligned_fastas/mt_aligned_all.fasta
 ```
 
+## 15/1/2019
+
+oops - have to mask the _plus reference_ fasta, not the main alignment:
+
+```bash
+touch exclusions.intervals
+for line in chromosome_6:535300-542150 chromosome_6:424800-427850 ; do
+    echo ${line} >> exclusions.intervals ;
+done
+
+time python3.5 analysis/alignment-lastz/mask_paralogs.py \
+--filename data/aligned-fastas/plus_strains_ref.fasta \
+--mask_intervals exclusions.intervals \
+--offset 298298 \
+--outfile data/aligned-fastas/plus_strains_ref_masked.fasta
+
+rm exclusions.intervals
+```
