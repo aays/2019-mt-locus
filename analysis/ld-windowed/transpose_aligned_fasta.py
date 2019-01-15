@@ -97,8 +97,6 @@ def transpose_fastas(infile, outfile, offset=None, snps_only=False):
         for i in tqdm(range(seq_len)):
             if offset:
                 position = i + offset + 1
-            elif infer_offset:
-                position = i + inferred_offset + 1
             elif not offset:
                 position = i
             bases = [seq[i] for seq in seqs]

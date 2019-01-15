@@ -339,5 +339,24 @@ into the one alignment with the highest score.
 back to `alignment-lastz`!
 
 
+## 15/1/2019
 
+while the LDhelmet script reruns, we could get started
+on running the LD analysis across chromosome 6:
+
+```bash
+time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+--fasta data/aligned-fastas/chromosome_6_all.fasta \
+--outfile data/ld-windowed/chromosome_6_long.txt \
+--offset 0
+
+time python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/chromosome_6_long.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/r2/chromosome_6_r2_1k.txt
+
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/r2/chromosome_6_r2_1k.txt \
+--outfile data/ld-windowed/zns/chromosome_6_zns_1k.txt
+```
 
