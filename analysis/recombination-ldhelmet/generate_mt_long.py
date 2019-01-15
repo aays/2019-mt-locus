@@ -60,7 +60,7 @@ def parse_aln(filename):
     with open(filename) as f:
         aln_file = [aln(*line.split('\t')) 
                     for line in f.readlines() 
-                    if not line.startswith('score')]
+                    if not line.startswith('#score')]
     return aln_file
 
 def get_sequence_length(filename):

@@ -12,7 +12,7 @@ an individual FASTA file, such as the mt-aligned file previously generated.
 
 ### Correcting coordinates
 
-Since the mt+ locus, which we are using as a 'reference track', starts
+Since the mt+ locus (which we are using as a 'reference track') starts
 at position 298298 of chromosome 6, the coordinates in the LDhelmet outfile
 need to be updated accordingly.
 
@@ -27,5 +27,5 @@ as well as those in the mt+ alone into a long-format file spanning the entire mt
 with individual positions as keys and per bp recombination rates as values.
 Each position is also demarcated as being gametologous or non-gametologous.
 
-This can be used for easy parsing and recombination rate lookup at any region
-within the mt locus. 
+This can be used for easy parsing and recombination rate lookup at any site
+or region within the mt locus. 
