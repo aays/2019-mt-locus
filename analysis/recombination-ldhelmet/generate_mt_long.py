@@ -119,7 +119,7 @@ def ldhelmet_file(infile):
     
 
 def write_long_mt(mt_locus, plus, intervals, outfile):
-    mt_bases = range(298299, 826738) # ldhelmet is origin one
+    mt_bases = range(298299, 943475) # ldhelmet is origin one
     mt_locus_dict = ldhelmet_file(mt_locus)
     plus_dict = ldhelmet_file(plus)
     
