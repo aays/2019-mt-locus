@@ -357,6 +357,62 @@ time python3.5 analysis/ld-windowed/r2_calc.py \
 
 time python3.5 analysis/ld-windowed/zns_calc.py \
 --filename data/ld-windowed/r2/chromosome_6_r2_1k.txt \
+--windowsize 1000 \
 --outfile data/ld-windowed/zns/chromosome_6_zns_1k.txt
 ```
+
+## 16/1/2019
+
+alright, this has been running for 24 hours now, and is
+well past the first ~1m SNPs - going to stop this now,
+since we only really need LD around the mt locus
+
+now for zns:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/r2/chromosome_6_r2_1k.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/zns/chromosome_6_zns_1k.txt
+```
+
+in the future, it'd be helpful to have a SAM-style
+defined range in the r2 script (ie 1-100000)
+
+we also need to combine all the individual zns files
+into an 'mt locus-wide' file to plot with
+
+```R
+library(tidyverse)
+library(fs)
+library(magrittr)
+
+fnames <- dir_ls('data/ld-windowed/zns', regexp = '.*[0-9]{6}.*')
+zns_all <- map_dfr(fnames, read_delim, delim = ' ', col_types = cols())
+# resolve cases of multiple values in the same window by
+# selecting the window that has more sites
+zns_all %<>%
+    group_by(start) %>%
+    filter(site_count == max(site_count)) %>%
+    ungroup()
+write_delim(zns_all, path = 'data/ld-windowed/mt_locus_zns.txt',
+            delim = ' ')
+```
+
+or simply:
+
+```bash
+time Rscript analysis/ld-windowed/combine_zns.R \
+--directory data/ld-windowed/zns \
+--outfile data/ld-windowed/mt_locus_zns.txt
+```
+
+
+
+
+
+
+
+
+
 
