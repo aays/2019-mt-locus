@@ -68,8 +68,11 @@ def get_gene_zns(gene_name):
 
     sites = list(set(sites)) # once more to be sure
     site_count = len(sites)
-    coefficient = 2 / (site_count * (site_count - 1)) 
-    zns_out = r2_cumulative * coefficient
+    if site_count:
+        coefficient = 2 / (site_count * (site_count - 1)) 
+        zns_out = r2_cumulative * coefficient
+    elif site_count == 0:
+        zns_out = None
 
     return zns_out
 
@@ -85,9 +88,9 @@ def all_genic_zns(filename, directory, outfile):
 
             for record in records:
                 dict_out = record
+                create_transposed_reference(record['gene'], directory)
                 dict_out['zns_all'] = get_gene_zns(record['gene'])
-                dict_out['zns_all'] = record_zns
-                writer.writerow(dict_all)
+                writer.writerow(dict_out)
         
 
 

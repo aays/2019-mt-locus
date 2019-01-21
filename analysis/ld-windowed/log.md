@@ -407,11 +407,42 @@ time Rscript analysis/ld-windowed/combine_zns.R \
 --outfile data/ld-windowed/mt_locus_zns.txt
 ```
 
+## 20/1/2019
 
+need to make a zns script that reads in a data frame
+of gene coordinates and returns zns for each
 
+although it'd be possible to write a script that
+looks up zns from existing r2 files, it's probably
+a better idea to have this script do all
+three steps at once for each set of coordinates
+(i.e. transposition, r2, zns)
 
+could help to import functions from the existing scripts?
+we'll see I suppose
 
+this script will need:
+- input dataframe from `cds-popgen`
+- dir containing reference fastas? or overall ref fasta (`translationaligner/curated`)
+- position doesn't actually matter here - so no need for offset
 
+no windowsize will be used here - ZnS is for all SNPs
+within a given region
+
+## 21/1/2019
+
+let's try running the script:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_genes.py \
+--filename analysis/cds-popgen/polymorphism/polymorphism_all.csv \
+--directory analysis/cds-popgen/TranslationAligner/curated/ \
+--outfile test_zns.out
+```
+
+looks good! although it seems some genes didn't have
+any variants at all... would be interesting to look at these
+down the line.
 
 
 
