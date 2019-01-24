@@ -445,5 +445,27 @@ any variants at all... would be interesting to look at these
 down the line.
 
 
+## 24/2/2019
 
+the polymorphism dataset has been updated w/ exon coords - the zns script
+needs to be updated so that it just transposes those coords in its temp
+files before calculating zns
+
+we need to do this for mtLimited AND shared genes, but in the mtLimited data file
+there is only one CDS column for both mt- and mt+ genes, while the shared file
+has two separate CDS columns - our script needs to account for this
+
+update: turns out the overall coords in the shared file are bonked for now - let's
+stick with working out the limited gene case
+
+```bash
+time python3.5 analysis/ld-windowed/zns_genes.py \
+--filename analysis/cds-popgen/transcript_exon_coords/polymorphism.mtLimited.csv \
+--directory analysis/cds-popgen/VCF2FASTA/mtLimited/ \
+--gene_type limited \
+--outfile limited_zns.out
+```
+
+this worked, but it seems some genes have missing zns values. is this because
+there's no variation? have a look
 
