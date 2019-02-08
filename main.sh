@@ -110,64 +110,6 @@ mv -v data/aligned-fastas/plus_strains_ref_masked.fasta data/aligned-fastas/plus
 
 sleep 3
 
-### RHO ESTIMATION ###
-
-echo "Done."
-echo "Starting recombination rate estimation."
-
-# recombination rate estimation
-## gametolog recombination
-echo "LDhelmet runs for aligned fasta..."
-time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
-data/aligned-fastas/mt_aligned_all.fasta
-
-sleep 3
-
-mv -v data/recombination-ldhelmet/recombination-estimates/mt_aligned_all.txt \
-data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw.txt # rename
-
-echo "Correcting coordinates for LDhelmet output..."
-time python3.5 analysis/recombination-ldhelmet/ldhelmet_aligned_clean.py \
--f data/recombination-ldhelmet/recombination-estimates/mt_aligned_raw.txt \
--o data/recombination-ldhelmet/recombination-estimates/mt_aligned_all.txt
-
-## non-gametolog recombination
-echo "LDhelmet runs for individual mt loci..."
-time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
-data/aligned-fastas/plus_strains_ref.fasta
-
-sleep 3
-
-time bash analysis/recombination-ldhelmet/ldhelmet_indiv.sh \
-data/aligned-fastas/minus_strains_ref.fasta
-
-sleep 3
-
-for allele in plus minus; do
-    time python3.5 analysis/recombination-ldhelmet/ldhelmet_mt_only_clean.py \
-    --filename data/recombination-ldhelmet/recombination-estimates/${allele}_strains_ref.txt \
-    --bed data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
-    --allele ${allele} \
-    --fasta data/aligned-fastas/${allele}_strains_ref.fasta \
-    --outfile data/recombination-ldhelmet/recombination-estimates/${allele}_strains_ref_corrected.txt
-done
-
-echo "Done."
-
-sleep 3
-
-echo "Generating long-form recombination estimates..."
-time python3.5 analysis/recombination-ldhelmet/generate_mt_long.py \
---mt_locus data/recombination-ldhelmet/recombination-estimates/mt_aligned_all.txt \
---plus data/recombination-ldhelmet/recombination-estimates/plus_strains_ref_corrected.txt \
---alignment data/alignment-lastz/lastz-align-30k-gapped-filtered.bed \
---fasta data/aligned-fastas/plus_strains_ref.fasta \
---outfile data/recombination-ldhelmet/recombination-estimates/mt_full_long.txt
-
-echo "Done."
-
-sleep 3
-
 ### MT LOCUS-WIDE LD ESTIMATIONS ###
 
 echo "Begin LD calculation across mt locus."
