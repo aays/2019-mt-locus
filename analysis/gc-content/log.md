@@ -54,3 +54,34 @@ seems this GC content level is just below genomewide levels:
 1    74828      123494  0.6059242
 ```
 
+## 2/2/2019
+
+need to redo the above for the minus non gametolog
+
+first, rename the plus:
+
+```bash
+mv -v data/gc-content/gc_4D_NG_1k.txt data/gc-content/gc_plus_NG_1k.txt
+```
+
+next, run the script from earlier on the minus:
+
+```bash
+time python3.5 analysis/gc-content/gc_calc.py \
+--filename data/aligned-fastas/minus_non_gametolog.fasta \
+--annotation data/references/annotation_table.txt.gz \
+--windowsize 1000 \
+--region mtMinus:1-345555 \
+--outfile data/gc-content/gc_minus_NG_1k.txt
+```
+
+finally, get the GC content:
+
+```R
+> d %>% summarise(total_GC = sum(GC), total_sites = sum(total_sites)) %>%
++ mutate(GC_content = total_GC / total_sites)
+# A tibble: 1 x 3
+  total_GC total_sites GC_content
+     <int>       <int>      <dbl>
+1   136302      221992  0.6139951
+```
