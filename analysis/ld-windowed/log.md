@@ -469,3 +469,350 @@ time python3.5 analysis/ld-windowed/zns_genes.py \
 this worked, but it seems some genes have missing zns values. is this because
 there's no variation? have a look
 
+also - add documentation to the functions in this script 
+
+## 28/1/2019
+
+running this for the shared genes now that Rob's fixed the file:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_genes.py \
+--filename analysis/cds-popgen/transcript_exon_coords/polymorphism.Shared.csv \
+--directory analysis/cds-popgen/TranslationAligner/curated/ \
+--gene_type shared \
+--outfile shared_zns.out
+```
+
+a positive correlation b/w zns and pin_pis:
+
+```R
+> d %<>% mutate(pin_pis = theta_pi_0fold_ALL / theta_pi_4fold_ALL)
+> lm(pin_pis ~ zns_all, data = d) %>% summary()
+
+Call:
+lm(formula = pin_pis ~ zns_all, data = d)
+
+Residuals:
+     Min       1Q   Median       3Q      Max
+-0.81178 -0.22580 -0.06100  0.04506  2.70222
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) -0.03136    0.18979  -0.165   0.8696
+zns_all      0.84314    0.39491   2.135   0.0391 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.5495 on 39 degrees of freedom
+  (10 observations deleted due to missingness)
+Multiple R-squared:  0.1046,    Adjusted R-squared:  0.08169
+F-statistic: 4.558 on 1 and 39 DF,  p-value: 0.0391
+```
+
+and with Fst - a pretty solid relationship!
+
+this makes sense since more linkage -> less R -> more allelic divergence
+
+holy shit!
+
+```R
+> lm(Fst ~ zns_all, data = d) %>% summary()
+
+Call:
+lm(formula = Fst ~ zns_all, data = d)
+
+Residuals:
+    Min      1Q  Median      3Q     Max
+-0.3495 -0.1614 -0.0666  0.1795  0.4841
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)  0.12788    0.07734   1.654 0.106236
+zns_all      0.58486    0.16092   3.635 0.000803 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.2239 on 39 degrees of freedom
+  (10 observations deleted due to missingness)
+Multiple R-squared:  0.253,     Adjusted R-squared:  0.2339
+F-statistic: 13.21 on 1 and 39 DF,  p-value: 0.0008025
+``` 
+
+nonsignificant with GC though:
+
+```R
+> lm(GC4 ~ zns_all, data = d) %>% summary()
+
+Call:
+lm(formula = GC4 ~ zns_all, data = d)
+
+Residuals:
+      Min        1Q    Median        3Q       Max
+-0.191988 -0.039266  0.003575  0.042997  0.186722
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)  0.84984    0.02573  33.026   <2e-16 ***
+zns_all     -0.08707    0.05354  -1.626    0.112
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.0745 on 39 degrees of freedom
+  (10 observations deleted due to missingness)
+Multiple R-squared:  0.0635,    Adjusted R-squared:  0.03949
+F-statistic: 2.645 on 1 and 39 DF,  p-value: 0.112
+```
+
+
+## 30/1/2019
+
+moving files to a new data folder:
+
+```bash
+mkdir data/cds-popgen
+mv -v shared_zns.out data/cds-popgen/polymorphism.shared.zns.csv
+mv -v limited_zns.out data/cds-popgen/polymorphism.mtLimited.zns.csv
+```
+
+
+## 2/2/2019
+
+let's get the chromosome 6-wide script running again in the background:
+
+```bash
+time python3.5 analysis/ld-windowed/r2_calc.py \
+--filename data/ld-windowed/chromosome_6_long.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/r2/chromosome_6_r2_1k_all.txt
+
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/r2/chromosome_6_r2_1k_all.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/zns/chromosome_6_zns_1k_all.txt
+```
+
+## 3/2/2019
+
+the script severely slows down around the 2.2m mark - time to
+make a new r2 script that takes in a specified region:
+
+```bash
+python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/chromosome_6_long.txt \
+--windowsize 1000 \
+--region chromosome_6:2500000-2502000 \
+--outfile test_chr6
+```
+
+alright, this seems to have worked - let's queue up a series of
+bash commands that run compute chr6 LD by the million
+
+```bash
+mkdir data/ld-windowed/chr6_temp
+
+time python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/chromosome_6_long.txt \
+--windowsize 1000 \
+--region chromosome_6:1-1000000 \
+--outfile data/ld-windowed/chr6_temp/chromosome_6_1-1000000.txt
+
+for i in {1..8}; do
+    j=$((i + 1))
+    time python3.5 analysis/ld-windowed/r2_calc_region.py \
+    --filename data/ld-windowed/chromosome_6_long.txt \
+    --windowsize 1000 \
+    --region chromosome_6:${i}000000-${j}000000 \
+    --outfile data/ld-windowed/chr6_temp/chromosome_6_${i}m.txt;
+done
+
+time python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/chromosome_6_long.txt \
+--windowsize 1000 \
+--region chromosome_6:9000000-9023763 \
+--outfile data/ld-windowed/chr6_temp/chromosome_6_9000000-9023763.txt
+```
+
+## 4/2/2019
+
+while the above runs (it's almost done by the way - hooray!) let's also
+get zns across the three domains of the mt locus. 
+
+we'll use the following coordinates:
+
+```
+T domain chromosome_6:298298-420090
+R domain chromosome_6:420091-826737
+C domain chromosome_6:826738-943474
+```
+
+with the boundary b/w T and R defined by the end coordinate of the TOC34
+gene (ie final gene in T domain in de Hoff paper)
+
+first, a new long-format aligned mt locus, now that we also have
+the C domain to worry about:
+
+```bash
+time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+--fasta data/aligned-fastas/mt_aligned_all.fasta \
+--outfile data/ld-windowed/mt_aligned_long.txt \
+--offset 298298
+```
+
+then, three separate r2 calculations:
+
+```bash
+mkdir data/ld-windowed/ld-domains
+time python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--outfile data/ld-windowed/ld-domains/t_domain.txt \
+--windowsize 1000 \
+--region chromosome_6:298298-420090
+
+
+time python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--outfile data/ld-windowed/ld-domains/r_domain.txt \
+--windowsize 1000 \
+--region chromosome_6:420091-826737
+
+time python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/mt_aligned_long.txt \
+--outfile data/ld-windowed/ld-domains/c_domain.txt \
+--windowsize 1000 \
+--region chromosome_6:826738-943474
+```
+
+to get a single zns value, we could use the existing zns script
+and set the windowsize to just a bit longer than entire length of the domain:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/ld-domains/t_domain.txt \
+--windowsize 123000 \
+--outfile data/ld-windowed/ld-domains/t_domain_zns.txt
+```
+
+update - after looking at the zns value (0.01??) I'm not sure this
+is actually the right method - the limited windowsize of the r2 calculations
+is likely messing with the actual zns estimation (since zns requires _all_ pairwise
+comparisons)
+
+let's stick to averaging over the `mt_locus_zns_chunks.txt` file. here
+are the coords once again:
+
+```
+T domain chromosome_6:298298-420090
+R domain chromosome_6:420091-826737
+C domain chromosome_6:826738-943474
+```
+
+```R
+> d %<>% 
++ mutate(
++ domain = case_when(
++ start <= 420000 ~ 'T',
++ start > 420000 & start <= 827000 ~ 'R',
++ start > 827000 ~ 'C'))
+> d %>% group_by(domain) %>% summarise(mean_zns = mean(zns))
+# A tibble: 3 x 2
+  domain  mean_zns
+   <chr>     <dbl>
+1      C 0.4908303
+2      R 0.7402661
+3      T 0.4298075
+```
+
+## 6/6/2019
+
+combining the files:
+
+```R
+library(fs)
+library(readr)
+library(dplyr)
+library(purrr)
+library(magrittr)
+
+fnames <- dir_ls('.')
+d <- map_dfr(fnames, read_delim, delim = ' ', col_types = cols())
+d %<>% arrange(snp1)
+write_delim(d, 'chromosome_6_r2_all.txt')
+```
+
+and now for the zns run:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/chromosome_6_r2_all.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/chromosome_6_zns_all.txt
+```
+
+## 8/8/2019
+
+this is taking forever, and is stuck around the 6m mark. look at this:
+
+```bash
+$ time python3.5 analysis/ld-windowed/zns_calc.py \
+> --filename data/ld-windowed/chromosome_6_r2_all.txt \
+> --windowsize 1000 \
+> --outfile data/ld-windowed/chromosome_6_zns_all.txt
+ 76%|███████████████████████▌       | 6853/9023 [44:57:25<31:48:46, 52.78s/it]
+```
+
+it was supposed to be done 13 hours ago!
+
+let's create a new temp r2 file that's only positions 6m onwards:
+
+```R
+library(fs)
+library(readr)
+library(dplyr)
+library(purrr)
+library(magrittr)
+
+fnames <- dir_ls(regexp = 'chromosome_6_[6-9]')
+d <- map_dfr(fnames, read_delim, delim = ' ', col_types = cols())
+d %<>% arrange(snp1)
+write_delim(d, 'chromosome_6_r2_6-9m.txt')
+```
+
+zns:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/chromosome_6_r2_6-9m.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/chromosome_6_zns_6m.txt
+```
+
+## 9/2/2019
+
+combining the files:
+
+```R
+d_all <- bind_rows(d1, d2) %>% 
+distinct() %>%
+arrange(start)
+
+# checking for duplicate windows
+d_all %>% group_by(start) %>% tally()
+
+# overwriting incomplete file
+write_delim(d_all, 'chromosome_6_zns_all.txt')
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
