@@ -445,7 +445,7 @@ any variants at all... would be interesting to look at these
 down the line.
 
 
-## 24/2/2019
+## 24/1/2019
 
 the polymorphism dataset has been updated w/ exon coords - the zns script
 needs to be updated so that it just transposes those coords in its temp
@@ -722,7 +722,7 @@ C domain chromosome_6:826738-943474
 3      T 0.4298075
 ```
 
-## 6/6/2019
+## 6/2/2019
 
 combining the files:
 
@@ -748,7 +748,7 @@ time python3.5 analysis/ld-windowed/zns_calc.py \
 --outfile data/ld-windowed/chromosome_6_zns_all.txt
 ```
 
-## 8/8/2019
+## 8/2/2019
 
 this is taking forever, and is stuck around the 6m mark. look at this:
 
