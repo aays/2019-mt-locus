@@ -802,6 +802,24 @@ d_all %>% group_by(start) %>% tally()
 write_delim(d_all, 'chromosome_6_zns_all.txt')
 ```
 
+## 25/2/2019
+
+fixing up the shared genes polymorphism file after that bug -
+now need to regenerate gene-specific zns estimates
+since some of the alignments were off
+
+```bash
+time python3.5 analysis/ld-windowed/zns_genes.py \
+--filename analysis/cds-popgen/polymorphism.Shared.csv \
+--directory analysis/cds-popgen/TranslationAligner/curated/ \
+--gene_type shared \
+--outfile shared_zns.out
+```
+
+there are two versions of `polymorphism.Shared` -
+the older one is in `transcript_exon_coords`, while
+the one with the correct PKY1 alignment is one level up
+
 
 
 
