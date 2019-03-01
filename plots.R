@@ -108,7 +108,7 @@ zns_plot_all <- plot_data %>% # only gametologs and chr6
 
 zns_plot_all
 
-ggsave('plots/mt_locus_hmm_all.pdf', plot = zns_plot_all,
+ggsave('plots/fig_1.pdf', plot = zns_plot_all,
        width = par('din')[1] * 1.75, height = par('din')[1])
 
 # figure 2 -
