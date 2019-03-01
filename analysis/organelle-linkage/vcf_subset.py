@@ -43,7 +43,7 @@ def subset_vcf(vcf_file, chrom, filter_fraction, outfile):
             print('Why run this script then?')
             sys.exit(1)
         elif filter_fraction and not chrom:
-            reader = vcf.Reader(filename = vcf_file, compressed = True)
+            reader = vcf.Reader(filename=vcf_file, compressed=True)
             writer = vcf.Writer(f, reader)
             for record in tqdm(reader):
                 counter['total'] += 1
@@ -51,8 +51,8 @@ def subset_vcf(vcf_file, chrom, filter_fraction, outfile):
                     counter['kept'] += 1
                     writer.write_record(record)
         elif len(chrom) == 1:
-            reader = vcf.Reader(filename = vcf_file, compressed = True)
-            region = reader.fetch(chrom = chrom[0])
+            reader = vcf.Reader(filename=vcf_file, compressed=True)
+            region = reader.fetch(chrom=chrom[0])
             writer = vcf.Writer(f, region)
             for record in tqdm(region):
                 if filter_fraction:
@@ -64,8 +64,8 @@ def subset_vcf(vcf_file, chrom, filter_fraction, outfile):
                     writer.write_record(record)
         elif len(chrom) > 1:
             for c in chrom:
-                reader = vcf.Reader(filename = vcf_file, compressed = True)
-                region = reader.fetch(chrom = c)
+                reader = vcf.Reader(filename=vcf_file, compressed=True)
+                region = reader.fetch(chrom=c)
                 writer = vcf.Writer(f, region)
                 print('Begin chromosome', c)
                 for record in tqdm(region):
