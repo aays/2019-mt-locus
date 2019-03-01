@@ -68,6 +68,10 @@ def transpose_exons(infile, gene_coords, exon_coords, outfile):
                 f.write(str(position) + ' ' + bases_out + ' ' + is_snp_out + '\n')
 
 def create_transposed_reference(gene_name, gene_coords, exon_coords, directory):
+    ''' (str, str, str, str) -> None
+    path-aware wrapper for transpose_exons above that creates a temp dir
+    and writes transposed fastas to it
+    '''
     if not os.path.exists('temp_transposed'):
         os.mkdir('temp_transposed')
     if not directory.endswith('/'):
@@ -85,6 +89,11 @@ def create_transposed_reference(gene_name, gene_coords, exon_coords, directory):
     
 
 def get_gene_zns(gene_name, gene_type):
+    ''' (str, str) -> float
+    uses the ld_calc function from the r2_calc script to generate
+    temporary r2 files using the transposed fastas created above.
+    once done, will calculate zns across CDSs of that gene.
+    '''
     fname = 'temp_transposed/' + gene_name + '_transposed.txt'
 
     # get length of sequence for 'windowsize' parameter
@@ -122,6 +131,10 @@ def get_gene_zns(gene_name, gene_type):
 
 
 def all_genic_zns(filename, directory, gene_type, outfile):
+    ''' (str, str, str, str) -> None
+    'master' function that calculates zns for each gene above
+    and outputs a new csv containing a zns_all column.
+    '''
     with open(outfile, 'w') as f_out:
         with open(filename, 'r') as f_in:
             records = [record for record in csv.DictReader(f_in)]
