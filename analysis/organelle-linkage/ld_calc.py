@@ -7,22 +7,22 @@ import vcf
 from tqdm import tqdm
 
 def args():
-    parser = argparse.ArgumentParser(description = 'ld_calc.py',
-                                     usage = 'python3.5 ld_calc.py [options]')
+    parser = argparse.ArgumentParser(description='ld_calc.py',
+                                     usage='python3.5 ld_calc.py [options]')
 
-    parser.add_argument('-v', '--vcf_file', required = True,
-                        type = str, help = 'VCF file to calculate LD from.')
-    parser.add_argument('-r', '--regions', required = True,
-                        type = str, nargs = '+', help = 'Two inter-chr regions to calculate LD between.')
+    parser.add_argument('-v', '--vcf_file', required=True,
+                        type=str, help='VCF file to calculate LD from.')
+    parser.add_argument('-r', '--regions', required=True,
+                        type=str, nargs='+', help='Two inter-chr regions to calculate LD between.')
     parser.add_argument('-o', '--outfile', required = True,
-                        type = str, help = 'File to write to.')
+                        type=str, help='File to write to.')
 
     args = parser.parse_args()
 
     return args.vcf_file, args.regions, args.outfile
 
 
-def snppuller(vcf_file, chrom = None, start = None, end = None):
+def snppuller(vcf_file, chrom=None, start=None, end=None):
     '''(str, str, int, int) -> iterable
     creates an iterable that lazily loads in usable SNPs.
     usable SNPs must be diallelic and nonsingletons.
@@ -65,7 +65,7 @@ def snppuller(vcf_file, chrom = None, start = None, end = None):
         else:
             continue
 
-def straingetter(record1, record2, GQ_threshold = 30, DP_threshold = 20):
+def straingetter(record1, record2, GQ_threshold=30, DP_threshold=20):
     '''(vcf.Record, vcf.Record, int, int)
     returns a list of strains with calls at both sites.
     also filters for GQ and DP thresholds (defaults - GQ = 30, DP = 20)

@@ -8,13 +8,13 @@ from tqdm import tqdm
 from ld_calc import get_freqs, ld_calc
 
 def args():
-    parser = argparse.ArgumentParser(description = 'all_pairs_calc.py',
-                                     usage = 'python3.5 all_pairs_calc.py [options]')
+    parser = argparse.ArgumentParser(description='all_pairs_calc.py',
+                                     usage='python3.5 all_pairs_calc.py [options]')
 
-    parser.add_argument('-v', '--vcf_file', required = True,
-                        type = str, help = 'VCF file to calculate LD from.')
-    parser.add_argument('-o', '--outfile', required = True,
-                        type = str, help = 'File to write to.')
+    parser.add_argument('-v', '--vcf_file', required=True,
+                        type=str, help='VCF file to calculate LD from.')
+    parser.add_argument('-o', '--outfile', required=True,
+                        type=str, help='File to write to.')
 
     args = parser.parse_args()
 
@@ -29,7 +29,7 @@ def snppuller(vcf_file):
     this version of snppuller differs from the ld_calc
     one in that it doesn't take in chrom, start, or end values
     '''
-    vcfin = vcf.Reader(filename = vcf_file, compressed = True)
+    vcfin = vcf.Reader(filename=vcf_file, compressed=True)
 
     def is_diallelic(record):
         counts = list(set([len(record.REF), len(record.ALT), len(record.ALT[0])]))
@@ -66,7 +66,7 @@ def snppuller(vcf_file):
         else:
             continue
 
-def straingetter(record1, record2, GQ_threshold = 30, DP_threshold = 20):
+def straingetter(record1, record2, GQ_threshold=30, DP_threshold=20):
     '''(vcf.Record, vcf.Record, int, int)
     returns a list of strains with calls at both sites.
     also filters for GQ and DP thresholds (defaults - GQ = 30, DP = 20)

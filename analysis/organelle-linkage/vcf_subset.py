@@ -12,17 +12,17 @@ import sys
 from tqdm import tqdm
 
 def args():
-    parser = argparse.ArgumentParser(description = 'Filter/subset VCFs',
-                                     usage = 'python3.5 vcf_subset.py [options]')
+    parser = argparse.ArgumentParser(description='Filter/subset VCFs',
+                                     usage='python3.5 vcf_subset.py [options]')
 
-    parser.add_argument('-v', '--vcf', required = True,
-                        type = str, help = 'Input VCF')
-    parser.add_argument('-c', '--chrom', required = False,
-                        type = str, nargs = '+', help = 'Chromosomes to keep. [Optional]')
-    parser.add_argument('-f', '--filter_fraction', required = False,
-                        type = float, help = 'Fraction of sites to keep. [Optional]')
-    parser.add_argument('-o', '--outfile', required = True,
-                        type = str, help = 'File to write to [.vcf]')
+    parser.add_argument('-v', '--vcf', required=True,
+                        type=str, help='Input VCF')
+    parser.add_argument('-c', '--chrom', required=False,
+                        type=str, nargs='+', help = 'Chromosomes to keep. [Optional]')
+    parser.add_argument('-f', '--filter_fraction', required=False,
+                        type=float, help='Fraction of sites to keep. [Optional]')
+    parser.add_argument('-o', '--outfile', required=True,
+                        type=str, help='File to write to [.vcf]')
 
     args = parser.parse_args()
 
