@@ -1,2 +1,7 @@
-# Recombination and mating type locus evolution
+# Consequences of recombination for the evolution of the mating type locus in _Chlamydomonas reinhardtii_
 
+### Ahmed R. Hasan, Jaspreet K. Duggal, Rob W. Ness
+
+#### Summary
+
+Recombination suppression in sex chromosomes and mating type loci can lead to degeneration due to reduced selection efficacy and Muller's ratchet effects. However, genetic exchange in the form of non-crossover gene conversions may still take place within crossover-suppressed regions. Recent work has found evidence that gene conversion may explain the low levels of allelic differentiation in the dimorphic mating type locus (_MT_) of the isogamous alga _Chlamydomonas reinhardtii_. However, no one has tested whether gene conversion is sufficient to avoid the degeneration of functional sequence within _MT_. Here, we calculate levels of linkage disequilibrium (LD) across _MT_ as a proxy for recombination rate and investigate its relationship to patterns of population genetic variation and the efficacy of selection in the region. We find that levels of LD predict selection efficacy across _MT_, and that purifying selection is stronger in shared genes than _MT_-limited genes to the point of being equivalent to that of autosomal genes. We argue that isogamous systems without secondary sexual characteristics exhibit reduced selective pressure to differentiate sex chromosomes, and that recombination via gene conversion plays an important role in both reducing differentiation and preventing degeneration of crossover suppressed mating type loci.
