@@ -120,6 +120,7 @@ def main():
     filename, windowsize, calc_range, outfile, tabix_for_me = args()
     if tabix_for_me:
         prep_file(filename)
+        filename += '.gz'
     windowed_zns(filename, windowsize, calc_range, outfile)
 
 if __name__ == '__main__':
