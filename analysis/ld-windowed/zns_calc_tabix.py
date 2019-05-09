@@ -15,6 +15,7 @@ import subprocess
 import re
 import os
 import time
+import sys
 from tqdm import tqdm
 
 def args():
@@ -75,6 +76,8 @@ def windowed_zns(filename, windowsize, calc_range, outfile):
     '''
     try:
         start, end = [int(i) for i in calc_range.split('-')]
+        if start == 1:
+            start = 0
     except:
         print('Coordinates incorrectly formatted.')
         print('Coordinates provided:', calc_range)
@@ -86,7 +89,7 @@ def windowed_zns(filename, windowsize, calc_range, outfile):
     with open(outfile, 'w') as f_out:
         f_out.write('start end zns site_count\n')
 
-        for window_left in tqdm(range(start - 1, end, windowsize)):
+        for window_left in tqdm(range(start, end, windowsize)):
             window_r2 = 0.0
             window_right = window_left + windowsize
             sites = []
@@ -118,6 +121,11 @@ def windowed_zns(filename, windowsize, calc_range, outfile):
                         
 def main():
     filename, windowsize, calc_range, outfile, tabix_for_me = args()
+    if not tabix_for_me and not filename.endswith('.gz'):
+        print('Your input file does not seem to be bgzipped...')
+        print('but you haven't asked the script to do the bgzip/tabix operation for you')
+        print('This can be done with the --tabix_for_me flag if needed. Exiting...')
+        sys.exit(1)
     if tabix_for_me:
         prep_file(filename)
         filename += '.gz'

@@ -41,3 +41,12 @@ r2 calculation, zns calculation). Creates a directory called `temp-transposed`
 to store transposed files + r2 values in. This also requires a csv
 (generated in `cds-popgen`) containing other gene-specific stats - the output
 of this script is that same csv with a 'zns' column tacked on.
+
+### `zns_calc_tabix.py`
+
+This is a dramatically faster version of `zns_calc.py`, written to calculate
+autosomal ZnS across the genome without having to wait several lifetimes.
+This takes in the output of `r2_calc.py` and converts it into a VCF-approximate
+format, thus allowing for tabix indexing and much faster ZnS calculations.
+The script also has a `--tabix_for_me` flag that will take in fresh `r2_calc` output
+and do all the formatting, bgzipping, and tabix-ing needed on it in order to operate. 

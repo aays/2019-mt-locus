@@ -1063,11 +1063,36 @@ time python3.5 analysis/ld-windowed/zns_calc_tabix.py \
 --tabix_for_me
 ```
 
-some bug fixes, but that took 18 seconds! and it looks correct!!! 
+needed some bug fixes, but that took 18 seconds! and it looks correct!!! 
 
 going to cancel the zns run on the server right now (which has taken > 1hr per 1 Mbp) 
 and rejig the battle plan here
 
+```python
+zns_cmd = 'time python3.5 analysis/ld-windowed/zns_calc_tabix.py \
+--filename data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.txt \
+--windowsize 1000 \
+--calc_range {start}-{end} \
+--outfile data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.zns \
+--tabix_for_me'
+
+# for one chrom
+for i in range(len(windows) - 1):
+    start, end = windows[i], windows[i + 1]
+    print('{0} {1} {2}'.format(chrom, start, end))
+    subprocess.call(zns_cmd.format(chrom=chrom, start=start, end=end), shell=True)
+    time.sleep(3)
+```
+
+this took 4:40 min for chr1 - not bad (takes just under 3 min if not having
+the script bgzip/tabix for you)
+
+remaining tasks:
+
+- combine the chr1 zns files with R and make sure there are no duplicates
+- write a script that does the r2 calc for a given chrom
+    - include the new zns script in it
+- run the script in parallel over the remaining chromosomes (all except 1 and 6)
 
 
 
