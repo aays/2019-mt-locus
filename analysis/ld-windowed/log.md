@@ -998,21 +998,21 @@ lengths = {'chromosome_1': 8033585,
 'chromosome_17': 7188315}
 
 transpose_cmd = 'time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
---fasta data/aligned-fastas/{chrom}_all.fasta \
+--fasta data/aligned-fastas/autosomal/{chrom}_all.fasta \
 --outfile data/ld-windowed/autosomal/{chrom}_long.txt \
 --offset 0'
 
 r2_cmd = 'time python3.5 analysis/ld-windowed/r2_calc_region.py \
---filename data/ld-windowed/{chrom}_long.txt \
+--filename data/ld-windowed/autosomal/{chrom}_long.txt \
 --windowsize 1000 \
---region {chrom}:{start}-{end} \
---outfile data/ld-windowed/{chrom}_temp/{chrom}:{start}-{end}.txt'
+--region {chrom}_{start}-{end} \
+--outfile data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.txt'
 
 # returns file w/ extension '.zns'
 zns_cmd = 'time python3.5 analysis/ld-windowed/zns_calc.py \
---filename data/ld-windowed/{chrom}_temp/{chrom}:{start}-{end}.txt \
+--filename data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.txt \
 --windowsize 1000 \
---outfile data/ld-windowed/{chrom}_temp/{chrom}:{start}-{end}.zns'
+--outfile data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.zns'
 
 for chrom in tqdm(chroms):
     if chrom == 'chromosome_6':
@@ -1034,7 +1034,7 @@ for chrom in tqdm(chroms):
     for i in range(len(windows) - 1):
         start, end = windows[i], windows[i + 1]
         print('{0} {1} {2}'.format(chrom, start, end))
-        subprocess.call(r2_cmd.format(chrom, start, end), shell=True)
+        subprocess.call(r2_cmd.format(chrom=chrom, start=start, end=end), shell=True)
         time.sleep(3)
 
     print('r2 calc done for', chrom)
@@ -1042,10 +1042,32 @@ for chrom in tqdm(chroms):
     for i in range(len(windows) - 1):
         start, end = windows[i], windows[i + 1]
         print('{0} {1} {2}'.format(chrom, start, end))
-        subprocess.call(zns_cmd.format(chrom, start, end), shell=True)
+        subprocess.call(zns_cmd.format(chrom=chrom, start=start, end=end), shell=True)
         time.sleep(3)
 
 ```
+
+## 9/5/2019
+
+since this zns calculation slows down the longer it runs (has to check over and skip
+more lines) I figured out a way to tabix-ify the whole process
+
+let's give it a shot:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc_tabix.py \
+--filename data/ld-windowed/chromosome_1_temp/chromosome_1\:1-1000000.txt \
+--windowsize 1000 \
+--calc_range 1-1000000 \
+--outfile test_zns.txt \
+--tabix_for_me
+```
+
+some bug fixes, but that took 18 seconds! and it looks correct!!! 
+
+going to cancel the zns run on the server right now (which has taken > 1hr per 1 Mbp) 
+and rejig the battle plan here
+
 
 
 
