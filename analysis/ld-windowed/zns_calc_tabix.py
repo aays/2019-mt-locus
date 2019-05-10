@@ -123,7 +123,7 @@ def main():
     filename, windowsize, calc_range, outfile, tabix_for_me = args()
     if not tabix_for_me and not filename.endswith('.gz'):
         print('Your input file does not seem to be bgzipped...')
-        print('but you haven't asked the script to do the bgzip/tabix operation for you')
+        print('but you did not ask the script to do the bgzip/tabix operation for you')
         print('This can be done with the --tabix_for_me flag if needed. Exiting...')
         sys.exit(1)
     if tabix_for_me:

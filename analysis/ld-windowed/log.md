@@ -1094,7 +1094,25 @@ remaining tasks:
     - include the new zns script in it
 - run the script in parallel over the remaining chromosomes (all except 1 and 6)
 
+so chr1 zns looks good to go - going to write an R script that `autosomal_ld.py` calls
+on to combine the files (modification of `combine_zns.py`)
 
+testing the R script:
+
+```bash
+Rscript analysis/ld-windowed/combine_zns_autosomal.R \
+--directory data/ld-windowed/chromosome_1_temp \
+--chrom chromosome_1 \
+--outfile chromosome_1_final.zns
+```
+
+let's run the full script on chr 15 to make sure it works:
+
+```bash
+time python3.5 analysis/ld-windowed/autosomal_ld.py \
+--filename data/aligned-fastas/autosomal/chromosome_15_all.fasta \
+--chrom chromosome_15
+```
 
 
 
