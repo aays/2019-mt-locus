@@ -9,6 +9,7 @@ data/alignment-lastz/50k
 data/recombination-ldhelmet/
 analysis/recombination-ldhelmet/
 data/references/all_quebec*
+data/references/chlamy*
 data/references/gvcfs
 data/aligned-fastas/
 data/ld-windowed/

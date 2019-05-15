@@ -820,6 +820,303 @@ there are two versions of `polymorphism.Shared` -
 the older one is in `transcript_exon_coords`, while
 the one with the correct PKY1 alignment is one level up
 
+## 4/5/2019
+
+post-review - need to get autosomal zns across the genome
+for each chromosome
+
+first:
+
+```bash
+mkdir data/ld-windowed/autosomal
+```
+
+we need to:
+
+1. get chromosome fastas for our strains
+2. convert them all to long format with `transpose_aligned_fasta.py`
+3. use `r2_calc_region.py` to do each chromosomes in 1m intervals
+4. get zns for each of the files above BEFORE combining them
+5. combine all the zns files into per-chromosome files
+
+```bash
+cd data/references
+ln -sv /scratch/research/references/chlamydomonas/5.3_chlamy_w_organelles_mt_minus/chlamy.5.3.w_organelles_mtMinus.fa* .
+
+cd ../../
+
+time ./bin/vcf2fasta.py -v data/references/all_quebec.HC.vcf.gz \
+-r data/references/chlamy.5.3.w_organelles_mtMinus.fa \
+-i chromosome_15:1-1922860 \
+-s CC2936 CC2937 CC3060 CC3064 CC3065 CC3068 CC3071 CC3076 CC3086 \
+CC2935 CC2938 CC3059 CC3061 CC3062 CC3063 CC3073 CC3075 CC3079 CC3084 \
+--min_GQ 30 > data/aligned-fastas/autosomal/chromosome_15_all.fasta
+```
+
+this works, but we need to manually put in the genome lengths...
+
+I could python + subprocess this out, but would need to make sure
+that process are properly dealt with (ie closed when done with, etc)
+so that the server isn't overloaded
+
+```python
+import subprocess
+from tqdm import tqdm
+from time import sleep
+
+chroms = ['chromosome_' + str(i) for i in range(1, 18)]
+
+lengths = {'chromosome_1': 8033585,
+'chromosome_2': 9223677,
+'chromosome_3': 9219486,
+'chromosome_4': 4091191,
+'chromosome_5': 3500558,
+'chromosome_6': 9023763,
+'chromosome_7': 6421821,
+'chromosome_8': 5033832,
+'chromosome_9': 7956127,
+'chromosome_10': 6576019,
+'chromosome_11': 3826814,
+'chromosome_12': 9730733,
+'chromosome_13': 5206065,
+'chromosome_14': 4157777,
+'chromosome_15': 1922860,
+'chromosome_16': 7783580,
+'chromosome_17': 7188315}
+
+cmd = 'time ./bin/vcf2fasta.py -v data/references/all_quebec.HC.vcf.gz \
+-r data/references/chlamy.5.3.w_organelles_mtMinus.fa \
+-i {c}:1-{l} \
+-s CC2936 CC2937 CC3060 CC3064 CC3065 CC3068 CC3071 CC3076 CC3086 \
+CC2935 CC2938 CC3059 CC3061 CC3062 CC3063 CC3073 CC3075 CC3079 CC3084 \
+--min_GQ 30 > data/aligned-fastas/autosomal/{c}_all.fasta'
+
+for chrom in tqdm(chroms):
+    print('currently on', chrom)
+    c_len = lengths[chrom]
+    if '15' not in chrom and '_6' not in chrom: # both already done
+        subprocess.call(cmd.format(c=chrom, l=c_len), shell=True)
+        sleep(1)
+        print('done', chrom)
+
+```
+
+## 6/5/2019
+
+once this is done (just a few hours to go!) - need to
+use subprocess again
+
+last time, the chr6 r2 calculations dramatically slowed
+down past 2m bp or so, and I had to do them 1m bases at a time
+before combining the files
+
+subprocess will allow for the chr lengths to be
+taken into account for the final interval
+
+here are the 'naive' commands:
+
+```bash
+for i in {1..5} {7..17}; do
+    time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+    --fasta data/aligned-fastas/chromosome_${i}_all.fasta \
+    --outfile data/ld-windowed/autosomal/chromosome_${i}_long.txt \
+    --offset 0
+
+    time python3.5 analysis/ld-windowed/r2_calc.py \
+    --filename data/ld-windowed/autosomal/chromosome_${i}_long.txt \
+    --windowsize 1000 \
+    --outfile data/ld-windowed/r2/chromosome_${i}_r2_1k.txt
+
+    time python3.5 analysis/ld-windowed/zns_calc.py \
+    --filename data/ld-windowed/r2/chromosome_${i}_r2_1k.txt \
+    --windowsize 1000 \
+    --outfile data/ld-windowed/zns/chromosome_${i}_zns_1k.txt ;
+done
+```
+
+but instead of `r2_calc.py` for that second step,
+need to use `r2_calc_region` like so:
+
+```bash
+mkdir data/ld-windowed/chr6_temp
+
+time python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/chromosome_6_long.txt \
+--windowsize 1000 \
+--region chromosome_6:1-1000000 \
+--outfile data/ld-windowed/chr6_temp/chromosome_6_1-1000000.txt
+
+for i in {1..8}; do
+    j=$((i + 1))
+    time python3.5 analysis/ld-windowed/r2_calc_region.py \
+    --filename data/ld-windowed/chromosome_6_long.txt \
+    --windowsize 1000 \
+    --region chromosome_6:${i}000000-${j}000000 \
+    --outfile data/ld-windowed/chr6_temp/chromosome_6_${i}m.txt;
+done
+
+time python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/chromosome_6_long.txt \
+--windowsize 1000 \
+--region chromosome_6:9000000-9023763 \
+--outfile data/ld-windowed/chr6_temp/chromosome_6_9000000-9023763.txt
+```
+
+checking my notes from earlier, it seems that zns script
+then dramatically slowed down...
+
+looks like we'll have to give zns the same split treatment -
+could even compute zns for each 1m interval as soon as the
+r2 files are generated (since no windows should overlap two files)
+
+a quick and dirty python script for the above:
+
+```python
+import subprocess
+from tqdm import tqdm
+import time
+import os
+
+chroms = ['chromosome_' + str(i) for i in range(1, 18)]
+
+lengths = {'chromosome_1': 8033585,
+'chromosome_2': 9223677,
+'chromosome_3': 9219486,
+'chromosome_4': 4091191,
+'chromosome_5': 3500558,
+'chromosome_6': 9023763,
+'chromosome_7': 6421821,
+'chromosome_8': 5033832,
+'chromosome_9': 7956127,
+'chromosome_10': 6576019,
+'chromosome_11': 3826814,
+'chromosome_12': 9730733,
+'chromosome_13': 5206065,
+'chromosome_14': 4157777,
+'chromosome_15': 1922860,
+'chromosome_16': 7783580,
+'chromosome_17': 7188315}
+
+transpose_cmd = 'time python3.5 analysis/ld-windowed/transpose_aligned_fasta.py \
+--fasta data/aligned-fastas/autosomal/{chrom}_all.fasta \
+--outfile data/ld-windowed/autosomal/{chrom}_long.txt \
+--offset 0'
+
+r2_cmd = 'time python3.5 analysis/ld-windowed/r2_calc_region.py \
+--filename data/ld-windowed/autosomal/{chrom}_long.txt \
+--windowsize 1000 \
+--region {chrom}_{start}-{end} \
+--outfile data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.txt'
+
+# returns file w/ extension '.zns'
+zns_cmd = 'time python3.5 analysis/ld-windowed/zns_calc.py \
+--filename data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.txt \
+--windowsize 1000 \
+--outfile data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.zns'
+
+for chrom in tqdm(chroms):
+    if chrom == 'chromosome_6':
+        continue
+    temp_dir = 'data/ld-windowed/' + chrom + '_temp'
+    if not os.path.isdir(temp_dir):
+        os.mkdir(temp_dir)
+    time.sleep(1)
+    
+    print('transposing', chrom)
+    subprocess.call(transpose_cmd.format(chrom=chrom), shell=True)
+    time.sleep(3)
+
+    print('r2 calc for', chrom)
+    windows = list(range(0, lengths[chrom], 1000000))
+    windows[0] = 1
+    windows.append(lengths[chrom])
+
+    for i in range(len(windows) - 1):
+        start, end = windows[i], windows[i + 1]
+        print('{0} {1} {2}'.format(chrom, start, end))
+        subprocess.call(r2_cmd.format(chrom=chrom, start=start, end=end), shell=True)
+        time.sleep(3)
+
+    print('r2 calc done for', chrom)
+    print('zns calc for', chrom)
+    for i in range(len(windows) - 1):
+        start, end = windows[i], windows[i + 1]
+        print('{0} {1} {2}'.format(chrom, start, end))
+        subprocess.call(zns_cmd.format(chrom=chrom, start=start, end=end), shell=True)
+        time.sleep(3)
+
+```
+
+## 9/5/2019
+
+since this zns calculation slows down the longer it runs (has to check over and skip
+more lines) I figured out a way to tabix-ify the whole process
+
+let's give it a shot:
+
+```bash
+time python3.5 analysis/ld-windowed/zns_calc_tabix.py \
+--filename data/ld-windowed/chromosome_1_temp/chromosome_1\:1-1000000.txt \
+--windowsize 1000 \
+--calc_range 1-1000000 \
+--outfile test_zns.txt \
+--tabix_for_me
+```
+
+needed some bug fixes, but that took 18 seconds! and it looks correct!!! 
+
+going to cancel the zns run on the server right now (which has taken > 1hr per 1 Mbp) 
+and rejig the battle plan here
+
+```python
+zns_cmd = 'time python3.5 analysis/ld-windowed/zns_calc_tabix.py \
+--filename data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.txt \
+--windowsize 1000 \
+--calc_range {start}-{end} \
+--outfile data/ld-windowed/{chrom}_temp/{chrom}_{start}-{end}.zns \
+--tabix_for_me'
+
+# for one chrom
+for i in range(len(windows) - 1):
+    start, end = windows[i], windows[i + 1]
+    print('{0} {1} {2}'.format(chrom, start, end))
+    subprocess.call(zns_cmd.format(chrom=chrom, start=start, end=end), shell=True)
+    time.sleep(3)
+```
+
+this took 4:40 min for chr1 - not bad (takes just under 3 min if not having
+the script bgzip/tabix for you)
+
+remaining tasks:
+
+- combine the chr1 zns files with R and make sure there are no duplicates
+- write a script that does the r2 calc for a given chrom
+    - include the new zns script in it
+- run the script in parallel over the remaining chromosomes (all except 1 and 6)
+
+so chr1 zns looks good to go - going to write an R script that `autosomal_ld.py` calls
+on to combine the files (modification of `combine_zns.py`)
+
+testing the R script:
+
+```bash
+Rscript analysis/ld-windowed/combine_zns_autosomal.R \
+--directory data/ld-windowed/chromosome_1_temp \
+--chrom chromosome_1 \
+--outfile chromosome_1_final.zns
+```
+
+let's run the full script on chr 15 to make sure it works:
+
+```bash
+time python3.5 analysis/ld-windowed/autosomal_ld.py \
+--filename data/aligned-fastas/autosomal/chromosome_15_all.fasta \
+--chrom chromosome_15
+```
+
+
+
+
 
 
 
