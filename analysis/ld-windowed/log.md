@@ -1114,6 +1114,40 @@ time python3.5 analysis/ld-windowed/autosomal_ld.py \
 --chrom chromosome_15
 ```
 
+## 10/5/2019
+
+alright, chrs 1, 6, and 15 are done - 14 chrs remain
+
+running this over 7 of them for now -
+
+```bash
+parallel -j 7 -i sh -c 'time python3.5 analysis/ld-windowed/autosomal_ld.py --filename data/aligned-fastas/autosomal/chromosome_{}_all.fasta --chrom chromosome_{}' -- {2..5} {7..9}
+```
+
+## 12/5/2019
+
+running the script on the remaining 7 chromosomes:
+
+```bash
+parallel -j 7 -i sh -c 'time python3.5 analysis/ld-windowed/autosomal_ld.py --filename data/aligned-fastas/autosomal/chromosome_{}_all.fasta --chrom chromosome_{}' -- {10..14} 16 17
+```
+
+## 14/5/2019
+
+scripts are done - final files look good
+
+going to stick the temp files into a tarball and delete them
+when I'm sure there's no need to return to them
+
+```bash
+mkdir temp_files
+mv -v *temp temp_files/
+tar -czvf temp_files.tar.gz temp_files/
+
+# renaming chr6 to match
+mv -v chromosome_6_zns_all.txt autosomal/chromosome_6_final.zns
+mv -v chromosome_6_long.txt autosomal/
+```
 
 
 
