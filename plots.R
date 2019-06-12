@@ -15,6 +15,7 @@ library(viridis)
 library(ggalt) # for relative annotations
 library(broom)
 library(car)
+library(emmeans)
 select <- dplyr::select
 
 setwd('~/Desktop/Coding/GitHub/2019-mt-locus/')
@@ -150,9 +151,13 @@ corr_plot_theme <- function(font_size = 16) {
         axis.line.y = element_line(size = 0.9),
         axis.ticks = element_line(colour = 'black'),
         plot.tag = element_text(colour = 'black', size = font_size, face = 'bold'),
-        panel.background = element_blank())
+        panel.background = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(family = 'Helvetica', face = 'bold', colour = 'black', size = font_size),
+        strip.placement = 'inside')
 }
   
+
 windowed_all <- left_join(
   windowed, filter(zns_files, region == 'mt'), by = 'start'
   ) %>% 
@@ -161,8 +166,32 @@ windowed_all <- left_join(
     GCsilent = as.numeric(GCsilent)
   )
 
-# Fst plot
-windowed_fst_plot <- windowed_all %>% 
+windowed_filtered <- windowed_all %>% 
+  filter(!is.na(Fst), !is.na(zns)) %>% 
+  filter(site_count >= 30) %>% 
+  select(Fst, zns, start, end, midpoint, region) %>% 
+  mutate(
+    domain = case_when(
+      start <= 420000 ~ 'T',
+      start > 420000 & start <= 826000 ~ 'R',
+      start > 826000 ~ 'C'
+    )
+  )
+
+# Fst plots
+# main (three panels with domains) + supplementary (overall fit coloured by domain)
+fst_annotations <- data.frame(
+  r2 = c(
+    'italic(R) ^ 2 == 0.389 ~~ italic(p) == 6.36 %*% 10 ^ -9', 
+    'italic(R) ^ 2 == 0.799 ~~ italic(p) < 2.2 %*% 10 ^ -16', 
+    'italic(R) ^ 2 == 0.005 ~~ italic(p) == 0.599'),
+  domain_f = factor(c('T', 'R', 'C'), levels = c('T', 'R', 'C')),
+  x = c(0.5, 0.5, 0.5),
+  y = c(1, 1, 1)
+)
+
+windowed_fst_plot <- windowed_filtered %>% 
+  mutate(domain_f = factor(domain, levels = c('T', 'R', 'C'))) %>% 
   ggplot(aes(x = zns, y = Fst)) +
   geom_point() +
   geom_smooth(method = 'lm', se = FALSE) +
@@ -171,23 +200,93 @@ windowed_fst_plot <- windowed_all %>%
     y = expression(F[ST])
   ) +
   coord_cartesian(
+    x = c(0, 1),
     y = c(0, 1)
   ) +
   ylim(0, 1) +
   corr_plot_theme(16) +
+  scale_x_continuous(labels = c(0, 0.25, 0.5, 0.75, 1)) +
+  facet_wrap(vars(domain_f), nrow = 1) +
+  geom_text(
+    data = fst_annotations,
+    mapping = aes(x = x, y = y, label = r2),
+    parse = TRUE, size = 3
+  )
+
+windowed_fst_plot
+
+ggsave('plots/fig_2.pdf', plot = windowed_fst_plot,
+       width = par('din')[1] * 1.25, height = par('din')[1] * 0.75)
+
+options(contrasts = c("contr.sum", "contr.poly"))
+# options(contrasts = c("contr.treatment", "contr.poly")) # defaults
+
+zns_fit <- lm(Fst ~ zns * domain, data = windowed_filtered)
+summary(zns_fit) # r2 = 0.8462, p < 2.2e-16
+zns_anova <- car::Anova(zns_fit, type = 3) # interaction - p = 2.4e-08
+
+# domain-specific regressions
+windowed_filtered %>% 
+  split(.$domain) %>% 
+  map_dfr(~ lm(Fst ~ zns, data = .) %>% 
+            summary() %>% 
+            tidy(),
+          .id = 'name')
+
+# fig S1 - overall linear fit of Fst and Zns
+fst_plot_domains <- windowed_filtered %>% 
+  mutate(domain_f = factor(domain, levels = c('T', 'R', 'C'))) %>% 
+  ggplot(aes(x = zns, y = Fst)) +
+  geom_point(aes(color = domain_f), size = 1.5) +
+  geom_smooth(method = 'lm', se = FALSE, color = wes_palette('Darjeeling1')[5]) +
+  labs(
+    x = expression(Z[nS]),
+    y = expression(F[ST]),
+    color = 'Domain'
+  ) +
+  coord_cartesian(
+    x = c(0, 1),
+    y = c(0, 1)
+  ) +
+  ylim(0, 1) +
+  corr_plot_theme(16) +
+  theme(legend.key = element_blank(),
+        legend.title = element_text(family = 'Helvetica', size = 16),
+        legend.text = element_text(family = 'Helvetica', size = 12)) +
+  scale_color_manual(
+    values = c(
+      'T' = wes_palette('Darjeeling1')[2],
+      'R' = wes_palette('Darjeeling1')[3],
+      'C' = wes_palette('Darjeeling1')[4]
+    )
+  ) +
   annotate('text', x = 0.2, y = 0.9, size = 6,
            label = 'italic(R) ^ 2 == 0.534',
            parse = TRUE) +
   annotate('text', x = 0.2, y = 0.8, size = 6,
            label = 'p < 2.2 %*% 10 ^ -16', parse = TRUE)
 
-windowed_fst_plot
+fst_plot_domains
 
-ggsave('plots/fig_2.pdf', plot = windowed_fst_plot,
+# fig. S2 - differences in zns means across domains
+zns_lsmeans <- emmeans::lsmeans(zns_fit, pairwise ~ domain)
+
+zns_means <- as_tibble(zns_lsmeans$lsmeans)
+
+zns_means_plot <- zns_means %>% 
+  mutate(domain = factor(domain, levels = c('T', 'R', 'C'))) %>% 
+  ggplot(aes(x = domain, y = lsmean,
+             ymin = lsmean - SE, ymax = lsmean + SE)) +
+  geom_point(size = 1.5) +
+  geom_errorbar(width = 0.2, size = 0.4) +
+  corr_plot_theme(16) +
+  coord_cartesian(y = c(0, 1)) +
+  labs(y = expression(Z[nS]))
+
+zns_means_plot
+  
+ggsave('plots/fig_S2.pdf', plot = zns_means_plot,
        width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
-
-lm(Fst ~ zns, data = windowed_all) %>% 
-  summary() # r2 = 0.5338, p < 2.2e-16
 
 # figure 3 -
 # a) pi and ZnS over both mating types

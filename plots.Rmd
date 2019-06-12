@@ -717,48 +717,38 @@ autosomal_zns %>%
 ```
 
 
-## Fig. S2 - domain separated linear fits of Fst and Zns
+## Fig. S2 - overall linear fit of Fst and Zns
 
 Data preparation in Figure 2 section above
 
 ```{r}
-fst_annotations <- data.frame(
-  r2 = c(
-    'italic(R) ^ 2 == 0.389 ~~ italic(p) == 6.36 %*% 10 ^ -9', 
-    'italic(R) ^ 2 == 0.799 ~~ italic(p) < 2.2 %*% 10 ^ -16', 
-    'italic(R) ^ 2 == 0.005 ~~ italic(p) == 0.599'),
-  domain_f = factor(c('T', 'R', 'C'), levels = c('T', 'R', 'C')),
-  x = c(0.5, 0.5, 0.5),
-  y = c(1, 1, 1)
-)
-
 windowed_fst_plot <- windowed_filtered %>% 
-  mutate(domain_f = factor(domain, levels = c('T', 'R', 'C'))) %>% 
   ggplot(aes(x = zns, y = Fst)) +
-  geom_point() +
+  geom_point(size = 1.5, alpha = 1) +
   geom_smooth(method = 'lm', se = FALSE) +
   labs(
     x = expression(Z[nS]),
-    y = expression(F[ST])
+    y = expression(F[ST]),
+    color = 'Domain'
   ) +
   coord_cartesian(
     x = c(0, 1),
     y = c(0, 1)
   ) +
   ylim(0, 1) +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   corr_plot_theme(16) +
-  scale_x_continuous(labels = c(0, 0.25, 0.5, 0.75, 1)) +
-  facet_wrap(vars(domain_f), nrow = 1) +
-  geom_text(
-    data = fst_annotations,
-    mapping = aes(x = x, y = y, label = r2),
-    parse = TRUE, size = 3
-  )
+  annotate('text', x = 0.1, y = 0.8, size = 6,
+           label = 'italic(R) ^ 2 == "0.534"',
+           parse = TRUE) +
+  annotate('text', x = 0.1, y = 0.7, size = 6,
+           label = 'p < 2.2 %*% 10^-16',
+           parse = TRUE)
 
 windowed_fst_plot
 
 ggsave('plots/fig_S2.pdf', plot = windowed_fst_plot,
-       width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
+       width = par('din')[1] * 1.25, height = par('din')[1] * 0.75)
 ```
 
 
