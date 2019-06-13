@@ -703,7 +703,6 @@ autosomal_zns_ridgeplot <- autosomal_zns %>%
 
 autosomal_zns_ridgeplot
 
-# regenerate this w/o monitors later
 ggsave('plots/fig_S1.pdf', plot = autosomal_zns_ridgeplot,
        width = par('din')[1] * 0.75, height = par('din')[1] * 0.5)
   
@@ -717,42 +716,7 @@ autosomal_zns %>%
 ```
 
 
-## Fig. S2 - overall linear fit of Fst and Zns
-
-Data preparation in Figure 2 section above
-
-```{r}
-windowed_fst_plot <- windowed_filtered %>% 
-  ggplot(aes(x = zns, y = Fst)) +
-  geom_point(size = 1.5, alpha = 1) +
-  geom_smooth(method = 'lm', se = FALSE) +
-  labs(
-    x = expression(Z[nS]),
-    y = expression(F[ST]),
-    color = 'Domain'
-  ) +
-  coord_cartesian(
-    x = c(0, 1),
-    y = c(0, 1)
-  ) +
-  ylim(0, 1) +
-  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1)) +
-  corr_plot_theme(16) +
-  annotate('text', x = 0.1, y = 0.8, size = 6,
-           label = 'italic(R) ^ 2 == "0.534"',
-           parse = TRUE) +
-  annotate('text', x = 0.1, y = 0.7, size = 6,
-           label = 'p < 2.2 %*% 10^-16',
-           parse = TRUE)
-
-windowed_fst_plot
-
-ggsave('plots/fig_S2.pdf', plot = windowed_fst_plot,
-       width = par('din')[1] * 1.25, height = par('din')[1] * 0.75)
-```
-
-
-## Fig. S3 - differences in ZnS across domains
+## Fig. S2 - differences in ZnS across domains
 
 Data preparation in Figure 2 section above
 
@@ -779,9 +743,44 @@ zns_means_plot <- zns_means %>%
 
 zns_means_plot
   
-ggsave('plots/fig_S3.pdf', plot = zns_means_plot,
+ggsave('plots/fig_S2.pdf', plot = zns_means_plot,
        width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
 ```
+
+## Fig. S3 - overall linear fit of Fst and Zns
+
+Data preparation in Figure 2 section above
+
+```{r}
+windowed_fst_plot <- windowed_filtered %>% 
+  ggplot(aes(x = zns, y = Fst)) +
+  geom_point(size = 1.5, alpha = 1) +
+  geom_smooth(method = 'lm', se = FALSE) +
+  labs(
+    x = expression(Z[nS]),
+    y = expression(F[ST]),
+    color = 'Domain'
+  ) +
+  coord_cartesian(
+    x = c(0, 1),
+    y = c(0, 1)
+  ) +
+  ylim(0, 1) +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1)) +
+  corr_plot_theme(16) +
+  annotate('text', x = 0.2, y = 0.8, size = 6,
+           label = 'italic(R) ^ 2 == "0.534"',
+           parse = TRUE) +
+  annotate('text', x = 0.2, y = 0.7, size = 6,
+           label = 'p < 2.2 %*% 10^-16',
+           parse = TRUE)
+
+windowed_fst_plot
+
+ggsave('plots/fig_S3.pdf', plot = windowed_fst_plot,
+       width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
+```
+
 
 ## Fig. S4 - Boxplots of Fst b/w autosomal and MT locus
 
