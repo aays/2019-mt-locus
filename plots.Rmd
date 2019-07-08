@@ -4,13 +4,13 @@ author: Ahmed Hasan
 output: pdf_document
 ---
 
-```{r}
+```{r, warning=FALSE}
 library(readr)
-library(dplyr)
+library(dplyr, warn.conflicts = FALSE)
 library(magrittr)
-library(tidyr)
+library(tidyr, warn.conflicts = FALSE)
 library(ggplot2)
-library(purrr)
+library(purrr, warn.conflicts = FALSE)
 library(patchwork)
 library(wesanderson)
 library(stringr)
@@ -19,9 +19,10 @@ library(depmixS4)
 library(viridis)
 library(ggalt) # for relative annotations
 library(broom)
-library(car)
-library(emmeans)
-library(ggridges)
+library(car, warn.conflicts = FALSE)
+library(emmeans, warn.conflicts = FALSE)
+library(ggridges, warn.conflicts = FALSE)
+library(ggpubr)
 select <- dplyr::select
 
 setwd('~/Desktop/Coding/GitHub/2019-mt-locus/')
@@ -115,7 +116,7 @@ zns_plot_all <- plot_data %>% # only gametologs and chr6
     y = expression(paste(Z[nS]))
   ) +
   scale_color_manual(
-    values = c(hmm_colors[3], hmm_colors[2], hmm_colors[1])) +
+    values = c(hmm_colors[1], hmm_colors[2], hmm_colors[3])) +
   scale_x_continuous(
     breaks = seq(0, 40, by = 5)*1e5, 
     labels = scales::comma,
@@ -131,7 +132,7 @@ zns_plot_all <- plot_data %>% # only gametologs and chr6
 
 zns_plot_all
 
-ggsave('plots/fig_1.pdf', plot = zns_plot_all,
+ggsave('plots/fig_1.eps', plot = zns_plot_all,
        width = par('din')[1] * 1.75, height = par('din')[1])
 
 ```
@@ -142,6 +143,7 @@ ggsave('plots/fig_1.pdf', plot = zns_plot_all,
 Data preparation:
 
 ```{r}
+set.seed(42)
 polymorphism_shared <- read_csv('data/cds-popgen/polymorphism_all.shared.20190225.zns.csv', col_types = cols()) %>% 
   mutate(piN_piS = theta_pi_0fold_ALL / theta_pi_4fold_ALL) %>% 
   mutate(piN_piS_PLUS = theta_pi_0fold_MTPLUS / theta_pi_4fold_MTPLUS) %>% 
@@ -165,6 +167,29 @@ windowed <- read_csv(
   col_types = cols()
   ) %>% 
   rename(start = start_coords)
+fst_chr6 <- read_csv(
+  'data/cds-popgen/polymorphism_fst_windowed.chr6.csv', 
+  col_types = cols()) %>% 
+  select(start = start_coords, end = end_coords, everything()) %>% 
+  left_join(
+    read_delim(
+      'data/ld-windowed/autosomal/chromosome_6_final.zns',
+      delim = ' ', col_types = cols()),
+    by = c('start', 'end')
+  ) %>% 
+  mutate(Fst = ifelse(Fst == 'N/A', 0, as.numeric(Fst))) %>% 
+  filter(start < 298000 | start > 943000) %>% 
+  filter(site_count >= 30) %>% 
+  mutate(Fst = ifelse(Fst < 0, 0, Fst))
+
+fst_chr6 %>% 
+  lm(Fst ~ zns, data = .) %>% 
+  summary()
+
+ggplot(fst_chr6, aes(x = zns, y = Fst)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = 'lm') +
+  theme_classic()
 
 windowed$start[1] <- 298000 # to match zns file
 
@@ -188,6 +213,17 @@ windowed_filtered <- windowed_all %>%
     )
   )
 
+fst_chr6 %>% 
+  filter(start < 298000 | start > 943000) %>% 
+  filter(site_count > 30) %>% 
+  mutate(window = floor(start / 10000) * 10000) %>% 
+  group_by(window) %>% 
+  summarise(Fst = mean(Fst, na.rm = TRUE),
+            zns = mean(zns, na.rm = TRUE)) %>% 
+  ggplot(., aes(x = zns, y = Fst)) +
+  geom_point() +
+  geom_smooth(method = 'lm')
+
 ```
 
 Fst and ZnS across the three domains:
@@ -210,49 +246,54 @@ corr_plot_theme <- function(font_size = 16) {
 }
   
 
-fst_annotations <- data.frame(
-  r2 = c(
-    'italic(R) ^ 2 == 0.389 ~~ italic(p) == 6.36 %*% 10 ^ -9', 
-    'italic(R) ^ 2 == 0.799 ~~ italic(p) < 2.2 %*% 10 ^ -16', 
-    'italic(R) ^ 2 == 0.005 ~~ italic(p) == 0.599'),
-  domain_f = factor(c('T', 'R', 'C'), levels = c('T', 'R', 'C')),
-  x = c(0.5, 0.5, 0.5),
-  y = c(1, 1, 1)
-)
-
-windowed_fst_plot <- windowed_filtered %>% 
+fst_plot_domains <- windowed_filtered %>% 
   mutate(domain_f = factor(domain, levels = c('T', 'R', 'C'))) %>% 
-  ggplot(aes(x = zns, y = Fst)) +
-  geom_point() +
-  geom_smooth(method = 'lm', se = FALSE) +
+  ggplot(aes(x = zns, y = Fst, color = domain_f)) +
+  geom_point(aes(color = domain_f), size = 1.5, alpha = 1) +
+  geom_smooth(method = 'lm', se = FALSE, size = 0.5) +
   labs(
     x = expression(Z[nS]),
-    y = expression(F[ST])
+    y = expression(F[ST]),
+    color = 'Domain'
   ) +
   coord_cartesian(
-    x = c(0, 1),
+    x = c(0, 1.3),
     y = c(0, 1)
   ) +
   ylim(0, 1) +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1)) +
   corr_plot_theme(16) +
-  scale_x_continuous(labels = c(0, 0.25, 0.5, 0.75, 1)) +
-  facet_wrap(vars(domain_f), nrow = 1) +
-  geom_text(
-    data = fst_annotations,
-    mapping = aes(x = x, y = y, label = r2),
-    parse = TRUE, size = 3
-  )
+  theme(legend.key = element_blank(),
+        legend.title = element_text(family = 'Helvetica', size = 16),
+        legend.text = element_text(family = 'Helvetica', size = 14),
+        legend.position = c(0.1, 0.8)) +
+  scale_color_manual(
+    values = c(
+      'T' = wes_palette('Darjeeling1')[2],
+      'R' = wes_palette('Darjeeling1')[3],
+      'C' = wes_palette('Darjeeling1')[4]
+    )
+  ) +
+  annotate('text', x = 1.175, y = 0.95, size = 5,
+           label = 'italic(R) ^ 2 == "0.799***"',
+           parse = TRUE) +
+  annotate('text', x = 1.12, y = 0.625, size = 5,
+           label = 'italic(R) ^ 2 == "0.389***"',
+           parse = TRUE) +
+  annotate('text', x = 1.1, y = 0.215, size = 5,
+           label = 'italic(R) ^ 2 == "0.0005"',
+           parse = TRUE)
 
-windowed_fst_plot
+fst_plot_domains
 
-ggsave('plots/fig_2.pdf', plot = windowed_fst_plot,
+ggsave('plots/fig_2.eps', plot = fst_plot_domains,
        width = par('din')[1] * 1.25, height = par('din')[1] * 0.75)
 ```
 
 Stats:
 
 ```{r}
-# mulitple regression
+# multiple regression
 zns_fit <- lm(Fst ~ zns * domain, data = windowed_filtered)
 summary(zns_fit) # r2 = 0.8462, p < 2.2e-16
 
@@ -266,6 +307,7 @@ windowed_filtered %>%
             summary() %>% 
             tidy(),
           .id = 'name')
+
 ```
 
 
@@ -431,7 +473,7 @@ ggsave('plots/piNpiS_zns_genes.pdf', plot = pi_zns_plot)
 fig_3 <- pi_mt_plot + pi_zns_plot
 fig_3
 
-ggsave('plots/fig_3.pdf', plot = fig_3,
+ggsave('plots/fig_3.eps', plot = fig_3,
        width = par('din')[1] * 1.5, height = par('din')[1] * 1.5 * 0.5)
 ```
 
@@ -543,7 +585,7 @@ allpairs_plot <- ggplot(ld_dflist$allpairs, aes(x = dprime)) +
 fig_4 <- cp_plot + mt_plot + mt_only_plot + allpairs_plot
 fig_4
 
-ggsave('plots/fig_4.pdf', plot = fig_4,
+ggsave('plots/fig_4.eps', plot = fig_4,
        width = par('din')[1] * 1.25, height = par('din')[1])
 
 ```
@@ -650,7 +692,7 @@ autosomal_zns_ridgeplot <- autosomal_zns %>%
     rel_min_height = 0.01,
     scale = 1.2,
     quantile_lines = TRUE,
-    quantiles = 2
+    quantiles = 2 # dividing line in middle is median
     ) +
   theme_classic() +
   theme(axis.text = element_text(family = 'Helvetica', color = 'black')) +
@@ -661,9 +703,8 @@ autosomal_zns_ridgeplot <- autosomal_zns %>%
 
 autosomal_zns_ridgeplot
 
-# regenerate this w/o monitors later
 ggsave('plots/fig_S1.pdf', plot = autosomal_zns_ridgeplot,
-       width = par('din')[1] * 1.25, height = par('din')[1])
+       width = par('din')[1] * 0.75, height = par('din')[1] * 0.5)
   
 ```
 
@@ -675,51 +716,7 @@ autosomal_zns %>%
 ```
 
 
-## Fig. S2 - overall linear fit of Fst and ZnS
-
-Data preparation in Figure 2 section above
-
-```{r}
-fst_plot_domains <- windowed_filtered %>% 
-  mutate(domain_f = factor(domain, levels = c('T', 'R', 'C'))) %>% 
-  ggplot(aes(x = zns, y = Fst)) +
-  geom_point(aes(color = domain_f), size = 1.5) +
-  geom_smooth(method = 'lm', se = FALSE, color = wes_palette('Darjeeling1')[5]) +
-  labs(
-    x = expression(Z[nS]),
-    y = expression(F[ST]),
-    color = 'Domain'
-  ) +
-  coord_cartesian(
-    x = c(0, 1),
-    y = c(0, 1)
-  ) +
-  ylim(0, 1) +
-  corr_plot_theme(16) +
-  theme(legend.key = element_blank(),
-        legend.title = element_text(family = 'Helvetica', size = 16),
-        legend.text = element_text(family = 'Helvetica', size = 12)) +
-  scale_color_manual(
-    values = c(
-      'T' = wes_palette('Darjeeling1')[2],
-      'R' = wes_palette('Darjeeling1')[3],
-      'C' = wes_palette('Darjeeling1')[4]
-    )
-  ) +
-  annotate('text', x = 0.2, y = 0.9, size = 6,
-           label = 'italic(R) ^ 2 == 0.534',
-           parse = TRUE) +
-  annotate('text', x = 0.2, y = 0.8, size = 6,
-           label = 'p < 2.2 %*% 10 ^ -16', parse = TRUE)
-
-fst_plot_domains
-
-ggsave('plots/fig_S2.pdf', plot = windowed_fst_plot,
-       width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
-```
-
-
-## Fig. S3 - differences in ZnS across domains
+## Fig. S2 - differences in ZnS across domains
 
 Data preparation in Figure 2 section above
 
@@ -746,8 +743,218 @@ zns_means_plot <- zns_means %>%
 
 zns_means_plot
   
-ggsave('plots/fig_S3.pdf', plot = zns_means_plot,
+ggsave('plots/fig_S2.pdf', plot = zns_means_plot,
        width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
 ```
+
+## Fig. S3 - overall linear fit of Fst and Zns
+
+Data preparation in Figure 2 section above
+
+```{r}
+windowed_fst_plot <- windowed_filtered %>% 
+  ggplot(aes(x = zns, y = Fst)) +
+  geom_point(size = 1.5, alpha = 1) +
+  geom_smooth(method = 'lm', se = FALSE) +
+  labs(
+    x = expression(Z[nS]),
+    y = expression(F[ST]),
+    color = 'Domain'
+  ) +
+  coord_cartesian(
+    x = c(0, 1),
+    y = c(0, 1)
+  ) +
+  ylim(0, 1) +
+  scale_x_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1)) +
+  corr_plot_theme(16) +
+  annotate('text', x = 0.2, y = 0.8, size = 6,
+           label = 'italic(R) ^ 2 == "0.534"',
+           parse = TRUE) +
+  annotate('text', x = 0.2, y = 0.7, size = 6,
+           label = 'p < 2.2 %*% 10^-16',
+           parse = TRUE)
+
+windowed_fst_plot
+
+ggsave('plots/fig_S3.pdf', plot = windowed_fst_plot,
+       width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
+```
+
+
+## Fig. S4 - Boxplots of Fst b/w autosomal and MT locus
+
+```{r}
+mt_autosomal_fst <- polymorphism_shared %>% 
+  select(Fst) %>% 
+  bind_rows(
+    select(polymorphism_other, Fst),
+    .id = 'annotation') %>% 
+  mutate(
+    annotation = case_when(
+      annotation == 1 ~ 'MT',
+      annotation == 2 ~ 'autosomal'
+    )
+  )
+
+fst_plot <- mt_autosomal_fst %>%
+  ggplot(aes(x = annotation, y = Fst)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.2) +
+  corr_plot_theme(16) +
+  labs(y = expression(F[ST])) +
+  coord_cartesian(y = c(0, 1)) +
+  stat_compare_means(method = 'wilcox')
+
+fst_plot
+
+mt_fst <- mt_autosomal_fst %>% 
+  filter(annotation == 'MT')
+autosomal_fst <- mt_autosomal_fst %>% 
+  filter(annotation == 'autosomal')
+
+wilcox.test(mt_fst$Fst, autosomal_fst$Fst, alternative = 'two.sided')
+
+ggsave('plots/fig_S4.pdf', plot = fst_plot,
+       width = par('din')[1] * 0.75, height = par('din')[1] * 0.75)
+
+```
+
+
+# Post-review additions
+
+## MT locus plot with annotations
+
+Modified from Fig. 1 code above
+
+```{r}
+gff <- read_tsv('data/references/final.strict.GFF3', 
+                col_names = FALSE) %>% 
+  filter(X1 == 'chromosome_6') %>% 
+  select(
+    chrom = X1,
+    type = X3,
+    start = X4,
+    end = X5,
+    strand = X7,
+    info = X9
+  ) %>% 
+  filter(type == 'mRNA', start >= 298298, end <= 943474) %>% 
+  mutate(name = str_extract(info, 'Name\\=([A-Za-z0-9\\.\\:]+)\\;')) %>% 
+  mutate(name = str_replace(name, 'Name\\=', '')) %>% 
+  mutate(name = str_replace(name, ';', '')) %>% 
+  mutate(gene_name = str_extract(info, 'geneName\\=[A-Za-z0-9\\.]+;')) %>% 
+  mutate(gene_name = str_replace(gene_name, 'geneName\\=', '')) %>% 
+  mutate(gene_name = str_replace(gene_name, ';', ''))
+  # tidyr::unite(range, start, end, sep = '-', remove = TRUE)
+  
+
+View(gff)
+
+# fig 1 replicate
+zns_plot_markers <- plot_data %>%
+  ggplot() +
+  geom_rect(aes(xmin = 298000, xmax = 420000, ymin = -0.5, ymax = 1.5),
+            color = '#eaecef', fill = '#eaecef') +
+  geom_rect(aes(xmin = 421000, xmax = 826000, ymin = -0.5, ymax = 1.5),
+            color = '#d9dce0', fill = '#d9dce0') +
+  geom_rect(aes(xmin = 827000, xmax = 943000, ymin = -0.5, ymax = 1.5), 
+            color = '#eaecef', fill = '#eaecef') +
+  geom_point(aes(x = midpoint, y = zns, color = state), size = 1.2) +
+  labs(
+    x = 'position on chromosome 6 (bp)',
+    y = expression(paste(Z[nS]))
+  ) +
+  scale_color_manual(
+    values = c(hmm_colors[2], hmm_colors[1], hmm_colors[3])) +
+  scale_x_continuous(
+    breaks = seq(0, 40, by = 5)*1e5, 
+    labels = scales::comma,
+    limits = c(0, 31.5)*1e5) +
+  coord_cartesian(
+    x = c(0, 30.5)*1e5, y = c(0, 1)) +
+  zns_plot_theme(16) +
+  annotate('text', label = 'T', x = 360000, y = 0.05, size = 8) +
+  annotate('text', label = 'R', x = 638000, y = 0.05, size = 8) +
+  annotate('text', label = 'C', x = 884000, y = 0.05, size = 8) +
+  guides(color = FALSE) +
+  geom_rect(data = gff,
+            aes(xmin = start, xmax = end,
+                ymin = -0.04, ymax = -0.015,
+                fill = strand)) +
+  scale_fill_viridis_d() +
+  guides(fill = FALSE) +
+  NULL
+
+zns_plot_markers
+
+# mt zoomed in
+zns_plot_mt <- plot_data %>% 
+  ggplot() +
+  geom_rect(aes(xmin = 298000, xmax = 420000, ymin = -0.5, ymax = 1.5),
+            color = '#eaecef', fill = '#eaecef') +
+  geom_rect(aes(xmin = 421000, xmax = 826000, ymin = -0.5, ymax = 1.5),
+            color = '#d9dce0', fill = '#d9dce0') +
+  geom_rect(aes(xmin = 827000, xmax = 943000, ymin = -0.5, ymax = 1.5), 
+            color = '#eaecef', fill = '#eaecef') +
+  geom_point(aes(x = midpoint, y = zns, color = state), size = 1.2) +
+  labs(
+    x = 'position on chromosome 6 (bp)',
+    y = expression(paste(Z[nS]))
+  ) +
+  scale_x_continuous(
+    labels = scales::comma
+  ) +
+  scale_color_manual(
+    values = c(hmm_colors[2], hmm_colors[1], hmm_colors[3])) +
+  ggplot2::coord_cartesian(
+    x = c(280000, 950000), y = c(0, 1)) +
+  zns_plot_theme(16) +
+  annotate('text', label = 'T', x = 360000, y = 0.05, size = 8) +
+  annotate('text', label = 'R', x = 638000, y = 0.05, size = 8) +
+  annotate('text', label = 'C', x = 884000, y = 0.05, size = 8) +
+  guides(color = FALSE) +
+  geom_rect(data = gff, 
+            aes(xmin = start, xmax = end,
+                ymin = -0.04, ymax = -0.015,
+                fill = strand)) +
+  scale_fill_viridis_d() +
+  guides(fill = FALSE) +
+  NULL
+
+zns_plot_mt
+
+```
+
+
+Saving the plots:
+
+```{r}
+ggsave('plots/fig_1_with_markers.pdf', plot = zns_plot_markers,
+       width = par('din')[1] * 1.50, height = par('din')[1] * 0.85)
+
+ggsave('plots/mt_locus_markers.pdf', plot = zns_plot_mt,
+       width = par('din')[1] * 1.50, height = par('din')[1] * 0.85)
+```
+
+## Table S2 - differentiation and diversity across MT
+
+```{r}
+# polymorphism_shared loaded in at fig. 2 above
+table_s2 <- polymorphism_shared %>% 
+  select(
+    gene, Fst, zns = zns_all, GC4,
+    shared, fixed, contains('piN_piS'), 
+    contains('variant'), contains('private')
+  )
+
+write_tsv(table_s2, path = 'data/cds-popgen/table_s2.tsv')
+```
+
+
+
+
+
+
 
 
