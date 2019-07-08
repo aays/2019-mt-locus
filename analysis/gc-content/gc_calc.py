@@ -69,7 +69,7 @@ def gc_content_calc(consensus, annotation, windowsize, region, outfile):
             p = ant.Reader(annotation)
             for record in p.fetch(chromosome, window_start, window_end):
                 seq_index = record.pos - start # fix offset for string indexing
-                if record.is_intronic or record.is_intergenic or record.is_fold4:
+                if record.is_fold4:
                     if consensus[seq_index] in ['G', 'C']:
                         counter['GC_count'] += 1
                         counter['total_sites'] += 1
